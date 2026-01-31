@@ -148,6 +148,68 @@ button:disabled {
   background: #000;
 }
 
+.stats-board {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f9fafb;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.stats-board + .stats-board {
+  margin-top: 16px;
+}
+
+.stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+}
+
+.stats-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stats-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.stats-team {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.stats-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
+  color: #374151;
+  text-align: right;
+}
+
+.crown {
+  font-size: 1.1rem;
+}
+
 .link-button {
   text-align: center;
   text-decoration: none;

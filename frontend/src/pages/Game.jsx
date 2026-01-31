@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { saveLastGame } from '../api.js'
 
 const symbols = ['🍀', '⭐', '🎯', '🎵', '🚀', '💎', '🎈', '🧩']
 
@@ -22,6 +23,7 @@ export default function Game() {
   const [flipped, setFlipped] = useState([])
   const [moves, setMoves] = useState(0)
   const navigate = useNavigate()
+  const savedResultRef = useRef(false)
 
   const allMatched = useMemo(
     () => cards.length > 0 && cards.every((card) => card.matched),
@@ -30,10 +32,14 @@ export default function Game() {
 
   useEffect(() => {
     if (allMatched) {
+      if (!savedResultRef.current) {
+        saveLastGame(moves)
+        savedResultRef.current = true
+      }
       const timer = setTimeout(() => navigate('/victory'), 600)
       return () => clearTimeout(timer)
     }
-  }, [allMatched, navigate])
+  }, [allMatched, moves, navigate])
 
   useEffect(() => {
     if (flipped.length !== 2) return
@@ -73,6 +79,7 @@ export default function Game() {
     setCards(buildDeck())
     setFlipped([])
     setMoves(0)
+    savedResultRef.current = false
   }
 
   return (

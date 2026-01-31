@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { registerUser, saveSelectedTeam } from '../api.js'
+import { registerUser, saveRegistrationId, saveSelectedTeam } from '../api.js'
 
 const teamOptions = [
   'Сопровождение ЕПА',
@@ -19,7 +19,6 @@ const teamOptions = [
 
 const initialForm = {
   fio: '',
-  email: '',
   team: '',
 }
 
@@ -35,11 +34,8 @@ export default function Register() {
   }
 
   const validate = () => {
-    if (!form.fio.trim() || !form.email.trim() || !form.team.trim()) {
+    if (!form.fio.trim() || !form.team.trim()) {
       return 'Заполните все поля'
-    }
-    if (!form.email.includes('@')) {
-      return 'Проверьте корректность почты'
     }
     return ''
   }
@@ -58,11 +54,11 @@ export default function Register() {
     try {
       setLoading(true)
       setError('')
-      await registerUser({
+      const registration = await registerUser({
         fio: form.fio.trim(),
-        email: form.email.trim(),
         team: trimmedTeam,
       })
+      saveRegistrationId(registration.id)
       saveSelectedTeam(mediaTeam)
       navigate('/game')
     } catch (err) {
@@ -85,16 +81,6 @@ export default function Register() {
               value={form.fio}
               onChange={onChange}
               placeholder="Иванов Иван Иванович"
-            />
-          </label>
-          <label className="field">
-            <span>Email</span>
-            <input
-              name="email"
-              value={form.email}
-              onChange={onChange}
-              placeholder="name@example.com"
-              type="email"
             />
           </label>
           <label className="field">

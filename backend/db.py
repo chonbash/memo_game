@@ -18,8 +18,17 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS registrations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 fio TEXT NOT NULL,
-                email TEXT NOT NULL,
                 team TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS game_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                registration_id INTEGER NOT NULL,
+                moves INTEGER NOT NULL,
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
             """
@@ -28,15 +37,82 @@ def init_db() -> None:
     finally:
         conn.close()
 
+def _registration_has_email(conn: sqlite3.Connection) -> bool:
+    cursor = conn.execute("PRAGMA table_info(registrations);")
+    return any(row["name"] == "email" for row in cursor.fetchall())
 
-def create_registration(fio: str, email: str, team: str) -> int:
+
+def create_registration(fio: str, team: str) -> int:
+    conn = get_connection()
+    try:
+        if _registration_has_email(conn):
+            cursor = conn.execute(
+                "INSERT INTO registrations (fio, email, team) VALUES (?, ?, ?)",
+                (fio, "", team),
+            )
+        else:
+            cursor = conn.execute(
+                "INSERT INTO registrations (fio, team) VALUES (?, ?)",
+                (fio, team),
+            )
+        conn.commit()
+        return int(cursor.lastrowid)
+    finally:
+        conn.close()
+
+
+def create_game_result(registration_id: int, moves: int) -> int:
     conn = get_connection()
     try:
         cursor = conn.execute(
-            "INSERT INTO registrations (fio, email, team) VALUES (?, ?, ?)",
-            (fio, email, team),
+            "INSERT INTO game_results (registration_id, moves) VALUES (?, ?)",
+            (registration_id, moves),
         )
         conn.commit()
         return int(cursor.lastrowid)
+    finally:
+        conn.close()
+
+
+def get_stats() -> list[sqlite3.Row]:
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            """
+            SELECT
+                r.id AS registration_id,
+                r.fio AS fio,
+                r.team AS team,
+                COUNT(gr.id) AS games_count,
+                MIN(gr.moves) AS best_moves,
+                MAX(gr.created_at) AS last_played
+            FROM registrations r
+            JOIN game_results gr ON gr.registration_id = r.id
+            GROUP BY r.id
+            ORDER BY best_moves ASC, games_count DESC, last_played DESC, fio COLLATE NOCASE ASC;
+            """
+        )
+        return cursor.fetchall()
+    finally:
+        conn.close()
+
+
+def get_team_stats() -> list[sqlite3.Row]:
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            """
+            SELECT
+                r.team AS team,
+                COUNT(gr.id) AS games_count,
+                MIN(gr.moves) AS best_moves,
+                MAX(gr.created_at) AS last_played
+            FROM registrations r
+            JOIN game_results gr ON gr.registration_id = r.id
+            GROUP BY r.team
+            ORDER BY best_moves ASC, games_count DESC, last_played DESC, team COLLATE NOCASE ASC;
+            """
+        )
+        return cursor.fetchall()
     finally:
         conn.close()
