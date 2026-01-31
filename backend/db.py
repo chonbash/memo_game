@@ -42,13 +42,13 @@ def _registration_has_email(conn: sqlite3.Connection) -> bool:
     return any(row["name"] == "email" for row in cursor.fetchall())
 
 
-def create_registration(fio: str, team: str) -> int:
+def create_registration(fio: str, team: str, email: str | None = None) -> int:
     conn = get_connection()
     try:
         if _registration_has_email(conn):
             cursor = conn.execute(
                 "INSERT INTO registrations (fio, email, team) VALUES (?, ?, ?)",
-                (fio, "", team),
+                (fio, email or "", team),
             )
         else:
             cursor = conn.execute(

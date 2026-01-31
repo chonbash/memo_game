@@ -38,7 +38,7 @@ def health() -> dict:
 
 @app.post("/api/register", response_model=RegistrationOut)
 def register(payload: RegistrationIn) -> RegistrationOut:
-    reg_id = db.create_registration(payload.fio, payload.team)
+    reg_id = db.create_registration(payload.fio, payload.team, payload.email)
     return RegistrationOut(id=reg_id, **payload.model_dump())
 
 

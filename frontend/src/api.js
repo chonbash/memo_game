@@ -59,7 +59,11 @@ export function saveSelectedTeam(team) {
 }
 
 export function getSelectedTeam() {
-  return localStorage.getItem(TEAM_STORAGE_KEY) || ''
+  const storedTeam = localStorage.getItem(TEAM_STORAGE_KEY) || ''
+  // #region agent log
+  fetch('http://127.0.0.1:7247/ingest/4466ca90-6875-42e7-b2f1-f4c1f0127932',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A',location:'frontend/src/api.js:getSelectedTeam',message:'Selected team from storage',data:{storedTeam},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+  return storedTeam
 }
 
 export function saveRegistrationId(id) {
@@ -102,8 +106,17 @@ export function getVideoUrl(team = '', extension = 'mp4') {
   const sanitizedTeam = team.trim()
   const safeExtension = extension.toLowerCase()
   const filename = `${TEAM_VIDEO_BASENAME}.${safeExtension}`
+  // #region agent log
+  fetch('http://127.0.0.1:7247/ingest/4466ca90-6875-42e7-b2f1-f4c1f0127932',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'B',location:'frontend/src/api.js:getVideoUrl',message:'Compute video URL',data:{team, sanitizedTeam, safeExtension, filename, apiBase: API_BASE},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   if (!sanitizedTeam) {
+    // #region agent log
+    fetch('http://127.0.0.1:7247/ingest/4466ca90-6875-42e7-b2f1-f4c1f0127932',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'C',location:'frontend/src/api.js:getVideoUrl',message:'Using default video (no team)',data:{url:`${API_BASE}/media/${filename}`},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     return `${API_BASE}/media/${filename}`
   }
+  // #region agent log
+  fetch('http://127.0.0.1:7247/ingest/4466ca90-6875-42e7-b2f1-f4c1f0127932',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'C',location:'frontend/src/api.js:getVideoUrl',message:'Using team video',data:{url:`${API_BASE}/media/${encodeURIComponent(sanitizedTeam)}/${filename}`},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   return `${API_BASE}/media/${encodeURIComponent(sanitizedTeam)}/${filename}`
 }

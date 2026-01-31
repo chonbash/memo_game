@@ -6,7 +6,7 @@ import Victory from './pages/Victory.jsx'
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route path="/" element={<Register />} />
         <Route path="/game" element={<Game />} />
