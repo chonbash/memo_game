@@ -1,21 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { registerUser, saveRegistrationId, saveSelectedTeam } from '../api.js'
-
-const teamOptions = [
-  'Сопровождение ЕПА',
-  'Сопровождение ФОСП',
-  'Сопровождение ЕПА КИБ/СМБ',
-  'Сопровождение УИП',
-  'Сопровождение ОСА',
-  'Сопровождение ОСП',
-  'Сопровождение ОСКК',
-  'Сопровождение ССА',
-  'Сопровождение ССП',
-  'Сопровождение ССД',
-  'Штаб',
-  'КУС',
-]
+import {
+  fetchTeams,
+  registerUser,
+  saveRegistrationId,
+  saveSelectedTeam,
+} from '../api.js'
 
 const initialForm = {
   fio: '',
@@ -26,7 +16,39 @@ export default function Register() {
   const [form, setForm] = useState(initialForm)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [teams, setTeams] = useState([])
+  const [teamsLoading, setTeamsLoading] = useState(true)
+  const [teamsError, setTeamsError] = useState('')
   const navigate = useNavigate()
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadTeams = async () => {
+      try {
+        setTeamsLoading(true)
+        setTeamsError('')
+        const response = await fetchTeams()
+        if (isMounted) {
+          setTeams(response.entries || [])
+        }
+      } catch (err) {
+        if (isMounted) {
+          setTeamsError(err.message || 'Ошибка загрузки команд')
+        }
+      } finally {
+        if (isMounted) {
+          setTeamsLoading(false)
+        }
+      }
+    }
+
+    loadTeams()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const onChange = (event) => {
     const { name, value } = event.target
@@ -49,7 +71,8 @@ export default function Register() {
     }
 
     const trimmedTeam = form.team.trim()
-    const mediaTeam = trimmedTeam.replaceAll('/', '-')
+    const selectedTeam = teams.find((team) => team.team === trimmedTeam)
+    const mediaPath = selectedTeam?.media_path || ''
 
     try {
       setLoading(true)
@@ -59,7 +82,7 @@ export default function Register() {
         team: trimmedTeam,
       })
       saveRegistrationId(registration.id)
-      saveSelectedTeam(mediaTeam)
+      saveSelectedTeam(mediaPath)
       navigate('/game')
     } catch (err) {
       setError(err.message || 'Ошибка регистрации')
@@ -85,19 +108,28 @@ export default function Register() {
           </label>
           <label className="field">
             <span>Команда</span>
-            <select name="team" value={form.team} onChange={onChange}>
+            <select
+              name="team"
+              value={form.team}
+              onChange={onChange}
+              disabled={teamsLoading || teams.length === 0}
+            >
               <option value="" disabled>
-                Выберите команду
+                {teamsLoading ? 'Загружаем команды...' : 'Выберите команду'}
               </option>
-              {teamOptions.map((team) => (
-                <option key={team} value={team}>
-                  {team}
+              {teams.map((team) => (
+                <option key={team.team} value={team.team}>
+                  {team.team}
                 </option>
               ))}
             </select>
           </label>
+          {teamsError && <div className="error">{teamsError}</div>}
           {error && <div className="error">{error}</div>}
-          <button type="submit" disabled={loading}>
+          <button
+            type="submit"
+            disabled={loading || teamsLoading || teams.length === 0}
+          >
             {loading ? 'Отправляем...' : 'Начать игру'}
           </button>
         </form>
