@@ -46,3 +46,32 @@ class TeamStatsEntry(BaseModel):
 
 class TeamStatsResponse(BaseModel):
     entries: list[TeamStatsEntry]
+
+
+class VideoEntry(BaseModel):
+    key: str
+    team: str | None
+    filename: str | None
+    url: str | None
+    is_default: bool
+
+
+class VideoListResponse(BaseModel):
+    entries: list[VideoEntry]
+
+
+class TrueFalseQuestionIn(BaseModel):
+    question: str = Field(min_length=1, max_length=500)
+    answer: bool
+    is_active: bool = True
+
+
+class TrueFalseQuestion(BaseModel):
+    id: int
+    question: str
+    answer: bool
+    is_active: bool
+
+
+class TrueFalseQuestionList(BaseModel):
+    entries: list[TrueFalseQuestion]
