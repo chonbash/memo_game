@@ -54,6 +54,18 @@ export async function fetchTeamStats() {
   return response.json()
 }
 
+export async function fetchTruthOrMythQuestions(limit = 6) {
+  const params = new URLSearchParams({ limit: String(limit) })
+  const response = await fetch(
+    `${API_BASE}/api/truth-or-myth?${params.toString()}`,
+  )
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || 'Ошибка загрузки вопросов')
+  }
+  return response.json()
+}
+
 export function saveSelectedTeam(team) {
   localStorage.setItem(TEAM_STORAGE_KEY, team)
 }

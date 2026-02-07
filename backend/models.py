@@ -46,3 +46,13 @@ class TeamStatsEntry(BaseModel):
 
 class TeamStatsResponse(BaseModel):
     entries: list[TeamStatsEntry]
+
+
+class TruthOrMythQuestion(BaseModel):
+    id: str
+    statement: str
+    is_true: bool
+
+
+class TruthOrMythResponse(BaseModel):
+    entries: list[TruthOrMythQuestion]

@@ -1,7 +1,9 @@
 from pathlib import Path
+import json
 import sqlite3
 
 DB_PATH = Path(__file__).resolve().parent / "app.db"
+QUESTIONS_PATH = Path(__file__).resolve().parent / "truth_or_myth_questions.json"
 
 
 def get_connection() -> sqlite3.Connection:
@@ -33,9 +35,39 @@ def init_db() -> None:
             );
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS truth_or_myth_questions (
+                id TEXT PRIMARY KEY,
+                statement TEXT NOT NULL,
+                is_true INTEGER NOT NULL
+            );
+            """
+        )
+        _seed_truth_or_myth_questions(conn)
         conn.commit()
     finally:
         conn.close()
+
+def _seed_truth_or_myth_questions(conn: sqlite3.Connection) -> None:
+    cursor = conn.execute("SELECT COUNT(1) AS count FROM truth_or_myth_questions;")
+    row = cursor.fetchone()
+    if row and int(row["count"]) > 0:
+        return
+    if not QUESTIONS_PATH.exists():
+        return
+    with QUESTIONS_PATH.open(encoding="utf-8") as file:
+        questions = json.load(file)
+    if not questions:
+        return
+    rows = [
+        (item["id"], item["statement"], 1 if item["is_true"] else 0)
+        for item in questions
+    ]
+    conn.executemany(
+        "INSERT INTO truth_or_myth_questions (id, statement, is_true) VALUES (?, ?, ?)",
+        rows,
+    )
 
 def _registration_has_email(conn: sqlite3.Connection) -> bool:
     cursor = conn.execute("PRAGMA table_info(registrations);")
@@ -112,6 +144,23 @@ def get_team_stats() -> list[sqlite3.Row]:
             GROUP BY r.team
             ORDER BY best_moves ASC, games_count DESC, last_played DESC, team COLLATE NOCASE ASC;
             """
+        )
+        return cursor.fetchall()
+    finally:
+        conn.close()
+
+
+def get_truth_or_myth_questions(limit: int) -> list[sqlite3.Row]:
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            """
+            SELECT id, statement, is_true
+            FROM truth_or_myth_questions
+            ORDER BY RANDOM()
+            LIMIT ?;
+            """,
+            (limit,),
         )
         return cursor.fetchall()
     finally:

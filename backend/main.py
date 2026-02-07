@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -12,6 +12,7 @@ from models import (
     RegistrationOut,
     StatsResponse,
     TeamStatsResponse,
+    TruthOrMythResponse,
 )
 
 MEDIA_DIR = Path(__file__).resolve().parent / "media"
@@ -76,3 +77,18 @@ def get_team_stats() -> TeamStatsResponse:
         for row in db.get_team_stats()
     ]
     return TeamStatsResponse(entries=entries)
+
+
+@app.get("/api/truth-or-myth", response_model=TruthOrMythResponse)
+def get_truth_or_myth_questions(
+    limit: int = Query(default=6, ge=1, le=20)
+) -> TruthOrMythResponse:
+    entries = [
+        {
+            "id": row["id"],
+            "statement": row["statement"],
+            "is_true": bool(row["is_true"]),
+        }
+        for row in db.get_truth_or_myth_questions(limit)
+    ]
+    return TruthOrMythResponse(entries=entries)
