@@ -46,3 +46,12 @@ class TeamStatsEntry(BaseModel):
 
 class TeamStatsResponse(BaseModel):
     entries: list[TeamStatsEntry]
+
+
+class TeamEntry(BaseModel):
+    team: str = Field(min_length=1, max_length=100)
+    media_path: str = Field(min_length=1, max_length=300)
+
+
+class TeamListResponse(BaseModel):
+    entries: list[TeamEntry]
