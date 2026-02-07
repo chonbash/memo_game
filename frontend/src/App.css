@@ -138,6 +138,64 @@ button:disabled {
   border: 1px solid #fdba74;
 }
 
+.truth-card {
+  background: #f9fafb;
+  border-radius: 16px;
+  padding: 18px 20px;
+  border: 1px solid #e5e7eb;
+}
+
+.truth-question {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #111827;
+  line-height: 1.5;
+}
+
+.truth-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.truth-actions button {
+  flex: 1;
+  min-width: 180px;
+}
+
+.truth-button.truth {
+  background: #16a34a;
+}
+
+.truth-button.truth:hover {
+  background: #15803d;
+}
+
+.truth-button.myth {
+  background: #dc2626;
+}
+
+.truth-button.myth:hover {
+  background: #b91c1c;
+}
+
+.truth-meta {
+  color: #6b7280;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.truth-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f9fafb;
+  border-radius: 16px;
+  padding: 18px 20px;
+  border: 1px solid #e5e7eb;
+}
+
 .video-wrapper {
   width: 100%;
 }
