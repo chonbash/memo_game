@@ -14,6 +14,7 @@ from models import (
     RegistrationIn,
     RegistrationOut,
     StatsResponse,
+    TeamListResponse,
     TeamStatsResponse,
     TruthOrMythResponse,
     TrueFalseQuestion,
@@ -128,6 +129,16 @@ def get_team_stats() -> TeamStatsResponse:
     return TeamStatsResponse(entries=entries)
 
 
+@app.get("/api/teams", response_model=TeamListResponse)
+def get_teams() -> TeamListResponse:
+    entries = [
+        {
+            "team": row["team"],
+            "media_path": row["media_path"],
+        }
+        for row in db.get_teams()
+    ]
+    return TeamListResponse(entries=entries)
 @app.get("/api/truth-or-myth", response_model=TruthOrMythResponse)
 def get_truth_or_myth_questions(
     limit: int = Query(default=6, ge=1, le=20)

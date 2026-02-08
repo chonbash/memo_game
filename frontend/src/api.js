@@ -1,3 +1,5 @@
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
+const TEAM_VIDEO_PATH_KEY = 'memoGameTeam'
 export const API_BASE =
   import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 const TEAM_STORAGE_KEY = 'memoGameTeam'
@@ -5,7 +7,7 @@ const REGISTRATION_ID_KEY = 'memoGameRegistrationId'
 const LAST_GAME_MOVES_KEY = 'memoGameLastMoves'
 const LAST_GAME_TOKEN_KEY = 'memoGameLastGameToken'
 const SUBMITTED_GAME_TOKEN_KEY = 'memoGameSubmittedGameToken'
-const TEAM_VIDEO_BASENAME = 'congrats'
+const DEFAULT_VIDEO_PATH = 'congrats.mp4'
 
 export async function registerUser(payload) {
   const response = await fetch(`${API_BASE}/api/register`, {
@@ -55,6 +57,11 @@ export async function fetchTeamStats() {
   return response.json()
 }
 
+export async function fetchTeams() {
+  const response = await fetch(`${API_BASE}/api/teams`)
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || 'Ошибка загрузки команд')
 export async function fetchTruthOrMythQuestions(limit = 6) {
   const params = new URLSearchParams({ limit: String(limit) })
   const response = await fetch(
@@ -72,6 +79,8 @@ export async function fetchAdminVideos() {
   return response.json()
 }
 
+export function saveSelectedTeam(videoPath) {
+  localStorage.setItem(TEAM_VIDEO_PATH_KEY, videoPath)
 export async function uploadAdminVideo(teamKey, file) {
   const formData = new FormData()
   formData.append('file', file)
@@ -144,7 +153,7 @@ export function saveSelectedTeam(team) {
 }
 
 export function getSelectedTeam() {
-  const storedTeam = localStorage.getItem(TEAM_STORAGE_KEY) || ''
+  const storedTeam = localStorage.getItem(TEAM_VIDEO_PATH_KEY) || ''
   // #region agent log
   fetch('http://127.0.0.1:7247/ingest/4466ca90-6875-42e7-b2f1-f4c1f0127932',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A',location:'frontend/src/api.js:getSelectedTeam',message:'Selected team from storage',data:{storedTeam},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
@@ -187,21 +196,27 @@ export function isGameSubmitted(token) {
   return localStorage.getItem(SUBMITTED_GAME_TOKEN_KEY) === token
 }
 
-export function getVideoUrl(team = '', extension = 'mp4') {
-  const sanitizedTeam = team.trim()
-  const safeExtension = extension.toLowerCase()
-  const filename = `${TEAM_VIDEO_BASENAME}.${safeExtension}`
-  // #region agent log
-  fetch('http://127.0.0.1:7247/ingest/4466ca90-6875-42e7-b2f1-f4c1f0127932',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'B',location:'frontend/src/api.js:getVideoUrl',message:'Compute video URL',data:{team, sanitizedTeam, safeExtension, filename, apiBase: API_BASE},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
-  if (!sanitizedTeam) {
-    // #region agent log
-    fetch('http://127.0.0.1:7247/ingest/4466ca90-6875-42e7-b2f1-f4c1f0127932',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'C',location:'frontend/src/api.js:getVideoUrl',message:'Using default video (no team)',data:{url:`${API_BASE}/media/${filename}`},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-    return `${API_BASE}/media/${filename}`
+const normalizeMediaPath = (value) => {
+  const rawValue = String(value || '').trim()
+  if (!rawValue) {
+    return DEFAULT_VIDEO_PATH
   }
+  const trimmed = rawValue.replace(/^\/+/, '')
+  const segments = trimmed.split('/').filter(Boolean)
+  if (segments.some((segment) => segment === '..')) {
+    return DEFAULT_VIDEO_PATH
+  }
+  return segments.join('/')
+}
+
+export function getVideoUrl(videoPath = '') {
+  const normalizedPath = normalizeMediaPath(videoPath)
+  const encodedPath = normalizedPath
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')
   // #region agent log
-  fetch('http://127.0.0.1:7247/ingest/4466ca90-6875-42e7-b2f1-f4c1f0127932',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'C',location:'frontend/src/api.js:getVideoUrl',message:'Using team video',data:{url:`${API_BASE}/media/${encodeURIComponent(sanitizedTeam)}/${filename}`},timestamp:Date.now()})}).catch(()=>{});
+  fetch('http://127.0.0.1:7247/ingest/4466ca90-6875-42e7-b2f1-f4c1f0127932',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'B',location:'frontend/src/api.js:getVideoUrl',message:'Compute video URL',data:{videoPath, normalizedPath, encodedPath, apiBase: API_BASE},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
-  return `${API_BASE}/media/${encodeURIComponent(sanitizedTeam)}/${filename}`
+  return `${API_BASE}/media/${encodedPath}`
 }

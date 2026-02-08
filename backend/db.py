@@ -59,6 +59,19 @@ def init_db() -> None:
     finally:
         conn.close()
 
+
+def _seed_teams(conn: sqlite3.Connection) -> None:
+    for sort_order, (team, media_path) in enumerate(TEAM_SEED, start=1):
+        conn.execute(
+            """
+            INSERT INTO teams (team, media_path, sort_order)
+            VALUES (?, ?, ?)
+            ON CONFLICT(team) DO UPDATE SET
+                media_path = excluded.media_path,
+                sort_order = excluded.sort_order;
+            """,
+            (team, media_path, sort_order),
+        )
 def _seed_truth_or_myth_questions(conn: sqlite3.Connection) -> None:
     cursor = conn.execute("SELECT COUNT(1) AS count FROM truth_or_myth_questions;")
     row = cursor.fetchone()
@@ -112,6 +125,21 @@ def create_game_result(registration_id: int, moves: int) -> int:
         )
         conn.commit()
         return int(cursor.lastrowid)
+    finally:
+        conn.close()
+
+
+def get_teams() -> list[sqlite3.Row]:
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            """
+            SELECT team, media_path
+            FROM teams
+            ORDER BY sort_order ASC, team COLLATE NOCASE ASC;
+            """
+        )
+        return cursor.fetchall()
     finally:
         conn.close()
 
