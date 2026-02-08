@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { registerUser, saveRegistrationId, saveSelectedTeam } from '../api.js'
 
 const teamOptions = [
@@ -101,9 +101,6 @@ export default function Register() {
             {loading ? 'Отправляем...' : 'Начать игру'}
           </button>
         </form>
-        <Link className="link-button subtle" to="/admin">
-          Перейти в админку
-        </Link>
       </div>
     </div>
   )
