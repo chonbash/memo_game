@@ -45,6 +45,16 @@ def init_db() -> None:
             """
         )
         _seed_truth_or_myth_questions(conn)
+            CREATE TABLE IF NOT EXISTS true_false_questions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                question TEXT NOT NULL,
+                answer INTEGER NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            """
+        )
         conn.commit()
     finally:
         conn.close()
@@ -151,6 +161,24 @@ def get_team_stats() -> list[sqlite3.Row]:
 
 
 def get_truth_or_myth_questions(limit: int) -> list[sqlite3.Row]:
+def list_true_false_questions(include_inactive: bool = True) -> list[sqlite3.Row]:
+    conn = get_connection()
+    try:
+        query = """
+            SELECT id, question, answer, is_active
+            FROM true_false_questions
+        """
+        params: tuple = ()
+        if not include_inactive:
+            query += " WHERE is_active = 1"
+        query += " ORDER BY id ASC;"
+        cursor = conn.execute(query, params)
+        return cursor.fetchall()
+    finally:
+        conn.close()
+
+
+def get_true_false_question(question_id: int) -> sqlite3.Row | None:
     conn = get_connection()
     try:
         cursor = conn.execute(
@@ -163,5 +191,60 @@ def get_truth_or_myth_questions(limit: int) -> list[sqlite3.Row]:
             (limit,),
         )
         return cursor.fetchall()
+            SELECT id, question, answer, is_active
+            FROM true_false_questions
+            WHERE id = ?;
+            """,
+            (question_id,),
+        )
+        return cursor.fetchone()
+    finally:
+        conn.close()
+
+
+def create_true_false_question(question: str, answer: bool, is_active: bool) -> int:
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            """
+            INSERT INTO true_false_questions (question, answer, is_active)
+            VALUES (?, ?, ?);
+            """,
+            (question, int(answer), int(is_active)),
+        )
+        conn.commit()
+        return int(cursor.lastrowid)
+    finally:
+        conn.close()
+
+
+def update_true_false_question(
+    question_id: int, question: str, answer: bool, is_active: bool
+) -> bool:
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            """
+            UPDATE true_false_questions
+            SET question = ?, answer = ?, is_active = ?, updated_at = datetime('now')
+            WHERE id = ?;
+            """,
+            (question, int(answer), int(is_active), question_id),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    finally:
+        conn.close()
+
+
+def delete_true_false_question(question_id: int) -> bool:
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            "DELETE FROM true_false_questions WHERE id = ?;",
+            (question_id,),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
     finally:
         conn.close()

@@ -47,6 +47,15 @@
   font-size: 0.95rem;
 }
 
+.field textarea {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
 .field select {
   border-radius: 10px;
   border: 1px solid #e5e7eb;
@@ -114,6 +123,15 @@ button:disabled {
 
 .ghost:hover {
   background: #e0e7ff;
+}
+
+.ghost.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.ghost.danger:hover {
+  background: #fecaca;
 }
 
 .grid {
@@ -275,4 +293,151 @@ button:disabled {
   border: 1px solid #e5e7eb;
   padding: 10px 12px;
   border-radius: 10px;
+}
+
+.link-button.subtle {
+  background: #f9fafb;
+  color: #4b5563;
+  border-style: dashed;
+}
+
+.admin-panel {
+  width: min(980px, 100%);
+  gap: 24px;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #f9fafb;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.admin-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-video-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-video-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.admin-video-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+  flex: 1;
+}
+
+.admin-video-title {
+  font-weight: 600;
+  color: #111827;
+}
+
+.admin-video-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.admin-video-meta a {
+  color: #4338ca;
+  text-decoration: none;
+}
+
+.admin-video-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-add-video {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px dashed #e5e7eb;
+}
+
+.admin-add-video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.admin-question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-question-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.admin-question-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin-question-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-add-question {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px dashed #e5e7eb;
+}
+
+.field-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
 }

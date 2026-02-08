@@ -48,11 +48,30 @@ class TeamStatsResponse(BaseModel):
     entries: list[TeamStatsEntry]
 
 
-class TruthOrMythQuestion(BaseModel):
-    id: str
-    statement: str
-    is_true: bool
+class VideoEntry(BaseModel):
+    key: str
+    team: str | None
+    filename: str | None
+    url: str | None
+    is_default: bool
 
 
-class TruthOrMythResponse(BaseModel):
-    entries: list[TruthOrMythQuestion]
+class VideoListResponse(BaseModel):
+    entries: list[VideoEntry]
+
+
+class TrueFalseQuestionIn(BaseModel):
+    question: str = Field(min_length=1, max_length=500)
+    answer: bool
+    is_active: bool = True
+
+
+class TrueFalseQuestion(BaseModel):
+    id: int
+    question: str
+    answer: bool
+    is_active: bool
+
+
+class TrueFalseQuestionList(BaseModel):
+    entries: list[TrueFalseQuestion]
