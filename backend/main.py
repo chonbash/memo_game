@@ -2,6 +2,7 @@ from pathlib import Path
 import shutil
 from urllib.parse import quote
 
+from fastapi import FastAPI, Query
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -15,6 +16,7 @@ from models import (
     StatsResponse,
     TeamListResponse,
     TeamStatsResponse,
+    TruthOrMythResponse,
     TrueFalseQuestion,
     TrueFalseQuestionIn,
     TrueFalseQuestionList,
@@ -137,6 +139,19 @@ def get_teams() -> TeamListResponse:
         for row in db.get_teams()
     ]
     return TeamListResponse(entries=entries)
+@app.get("/api/truth-or-myth", response_model=TruthOrMythResponse)
+def get_truth_or_myth_questions(
+    limit: int = Query(default=6, ge=1, le=20)
+) -> TruthOrMythResponse:
+    entries = [
+        {
+            "id": row["id"],
+            "statement": row["statement"],
+            "is_true": bool(row["is_true"]),
+        }
+        for row in db.get_truth_or_myth_questions(limit)
+    ]
+    return TruthOrMythResponse(entries=entries)
 @app.get("/api/questions", response_model=TrueFalseQuestionList)
 def get_true_false_questions() -> TrueFalseQuestionList:
     entries = [
