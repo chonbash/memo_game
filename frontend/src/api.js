@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
+export const API_BASE =
+  import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 const TEAM_STORAGE_KEY = 'memoGameTeam'
 const REGISTRATION_ID_KEY = 'memoGameRegistrationId'
 const LAST_GAME_MOVES_KEY = 'memoGameLastMoves'
@@ -50,6 +51,82 @@ export async function fetchTeamStats() {
   if (!response.ok) {
     const message = await response.text()
     throw new Error(message || 'Ошибка загрузки статистики команд')
+  }
+  return response.json()
+}
+
+export async function fetchAdminVideos() {
+  const response = await fetch(`${API_BASE}/api/admin/videos`)
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || 'Ошибка загрузки видео')
+  }
+  return response.json()
+}
+
+export async function uploadAdminVideo(teamKey, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const encodedKey = encodeURIComponent(teamKey)
+  const response = await fetch(`${API_BASE}/api/admin/videos/${encodedKey}`, {
+    method: 'POST',
+    body: formData,
+  })
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || 'Ошибка загрузки видео')
+  }
+  return response.json()
+}
+
+export async function fetchAdminQuestions() {
+  const response = await fetch(`${API_BASE}/api/admin/questions`)
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || 'Ошибка загрузки вопросов')
+  }
+  return response.json()
+}
+
+export async function createAdminQuestion(payload) {
+  const response = await fetch(`${API_BASE}/api/admin/questions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || 'Ошибка создания вопроса')
+  }
+  return response.json()
+}
+
+export async function updateAdminQuestion(questionId, payload) {
+  const response = await fetch(
+    `${API_BASE}/api/admin/questions/${questionId}`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  )
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || 'Ошибка обновления вопроса')
+  }
+  return response.json()
+}
+
+export async function deleteAdminQuestion(questionId) {
+  const response = await fetch(
+    `${API_BASE}/api/admin/questions/${questionId}`,
+    {
+      method: 'DELETE',
+    },
+  )
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || 'Ошибка удаления вопроса')
   }
   return response.json()
 }

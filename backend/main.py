@@ -1,6 +1,8 @@
 from pathlib import Path
+import shutil
+from urllib.parse import quote
 
-from fastapi import FastAPI
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -12,9 +14,16 @@ from models import (
     RegistrationOut,
     StatsResponse,
     TeamStatsResponse,
+    TrueFalseQuestion,
+    TrueFalseQuestionIn,
+    TrueFalseQuestionList,
+    VideoEntry,
+    VideoListResponse,
 )
 
 MEDIA_DIR = Path(__file__).resolve().parent / "media"
+TEAM_VIDEO_BASENAME = "congrats"
+DEFAULT_TEAM_KEY = "default"
 
 app = FastAPI()
 
@@ -29,6 +38,45 @@ app.add_middleware(
 db.init_db()
 
 app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
+
+
+def _team_directory(team_key: str) -> Path:
+    if team_key == DEFAULT_TEAM_KEY:
+        return MEDIA_DIR
+    if "/" in team_key or "\\" in team_key:
+        raise HTTPException(status_code=400, detail="Некорректное имя команды")
+    return MEDIA_DIR / team_key
+
+
+def _find_team_video(directory: Path) -> Path | None:
+    for candidate in sorted(directory.glob(f"{TEAM_VIDEO_BASENAME}.*")):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _build_video_entry(team_key: str, directory: Path, is_default: bool) -> VideoEntry:
+    video_file = _find_team_video(directory)
+    filename = video_file.name if video_file else None
+    if not filename:
+        return VideoEntry(
+            key=team_key,
+            team=None if is_default else team_key,
+            filename=None,
+            url=None,
+            is_default=is_default,
+        )
+    if is_default:
+        url = f"/media/{filename}"
+    else:
+        url = f"/media/{quote(team_key)}/{filename}"
+    return VideoEntry(
+        key=team_key,
+        team=None if is_default else team_key,
+        filename=filename,
+        url=url,
+        is_default=is_default,
+    )
 
 
 @app.get("/api/health")
@@ -76,3 +124,107 @@ def get_team_stats() -> TeamStatsResponse:
         for row in db.get_team_stats()
     ]
     return TeamStatsResponse(entries=entries)
+
+
+@app.get("/api/questions", response_model=TrueFalseQuestionList)
+def get_true_false_questions() -> TrueFalseQuestionList:
+    entries = [
+        {
+            "id": int(row["id"]),
+            "question": row["question"],
+            "answer": bool(row["answer"]),
+            "is_active": bool(row["is_active"]),
+        }
+        for row in db.list_true_false_questions(include_inactive=False)
+    ]
+    return TrueFalseQuestionList(entries=entries)
+
+
+@app.get("/api/admin/questions", response_model=TrueFalseQuestionList)
+def get_admin_true_false_questions() -> TrueFalseQuestionList:
+    entries = [
+        {
+            "id": int(row["id"]),
+            "question": row["question"],
+            "answer": bool(row["answer"]),
+            "is_active": bool(row["is_active"]),
+        }
+        for row in db.list_true_false_questions(include_inactive=True)
+    ]
+    return TrueFalseQuestionList(entries=entries)
+
+
+@app.post("/api/admin/questions", response_model=TrueFalseQuestion)
+def create_admin_true_false_question(payload: TrueFalseQuestionIn) -> TrueFalseQuestion:
+    question_id = db.create_true_false_question(
+        payload.question, payload.answer, payload.is_active
+    )
+    return TrueFalseQuestion(
+        id=question_id,
+        question=payload.question,
+        answer=payload.answer,
+        is_active=payload.is_active,
+    )
+
+
+@app.put("/api/admin/questions/{question_id}", response_model=TrueFalseQuestion)
+def update_admin_true_false_question(
+    question_id: int, payload: TrueFalseQuestionIn
+) -> TrueFalseQuestion:
+    updated = db.update_true_false_question(
+        question_id, payload.question, payload.answer, payload.is_active
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Вопрос не найден")
+    return TrueFalseQuestion(
+        id=question_id,
+        question=payload.question,
+        answer=payload.answer,
+        is_active=payload.is_active,
+    )
+
+
+@app.delete("/api/admin/questions/{question_id}")
+def delete_admin_true_false_question(question_id: int) -> dict:
+    deleted = db.delete_true_false_question(question_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Вопрос не найден")
+    return {"status": "deleted"}
+
+
+@app.get("/api/admin/videos", response_model=VideoListResponse)
+def get_admin_videos() -> VideoListResponse:
+    entries: list[VideoEntry] = []
+    entries.append(_build_video_entry(DEFAULT_TEAM_KEY, MEDIA_DIR, True))
+
+    for item in sorted(MEDIA_DIR.iterdir(), key=lambda path: path.name.lower()):
+        if item.is_dir():
+            entries.append(_build_video_entry(item.name, item, False))
+
+    return VideoListResponse(entries=entries)
+
+
+@app.post("/api/admin/videos/{team_key}", response_model=VideoEntry)
+async def upload_admin_video(team_key: str, file: UploadFile = File(...)) -> VideoEntry:
+    team_dir = _team_directory(team_key)
+    team_dir.mkdir(parents=True, exist_ok=True)
+
+    extension = Path(file.filename or "").suffix.lower()
+    if not extension:
+        extension = ".mp4"
+    target_name = f"{TEAM_VIDEO_BASENAME}{extension}"
+
+    for existing in team_dir.glob(f"{TEAM_VIDEO_BASENAME}.*"):
+        if existing.is_file():
+            existing.unlink()
+
+    target_path = team_dir / target_name
+    try:
+        with target_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    finally:
+        await file.close()
+
+    return _build_video_entry(
+        team_key, team_dir, is_default=team_key == DEFAULT_TEAM_KEY
+    )
