@@ -136,9 +136,6 @@ export default function Register() {
             {loading ? 'Отправляем...' : 'Начать игру'}
           </button>
         </form>
-        <Link className="link-button subtle" to="/admin">
-          Перейти в админку
-        </Link>
       </div>
     </div>
   )
