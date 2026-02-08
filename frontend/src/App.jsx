@@ -3,6 +3,7 @@ import './App.css'
 import Register from './pages/Register.jsx'
 import Game from './pages/Game.jsx'
 import Victory from './pages/Victory.jsx'
+import Admin from './pages/Admin.jsx'
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <Route path="/" element={<Register />} />
         <Route path="/game" element={<Game />} />
         <Route path="/victory" element={<Victory />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
