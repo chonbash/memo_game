@@ -11,7 +11,7 @@ const calculateMoves = (correctCount, totalCount) => {
   return BASE_MOVES + incorrect * WRONG_PENALTY
 }
 
-export default function TruthOrMyth() {
+export default function TruthOrMyth({ onComplete }) {
   const [questions, setQuestions] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [correctCount, setCorrectCount] = useState(0)
@@ -70,7 +70,13 @@ export default function TruthOrMyth() {
     loadQuestions()
   }
 
-  const finish = () => navigate('/victory')
+  const finish = () => {
+    if (onComplete) {
+      onComplete()
+      return
+    }
+    navigate('/victory')
+  }
 
   return (
     <div className="page">

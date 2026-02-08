@@ -14,8 +14,12 @@ from models import (
     RegistrationIn,
     RegistrationOut,
     StatsResponse,
+    TeamEntry,
     TeamListResponse,
     TeamStatsResponse,
+    TruthOrMythAdminEntry,
+    TruthOrMythAdminIn,
+    TruthOrMythAdminList,
     TruthOrMythResponse,
     TrueFalseQuestion,
     TrueFalseQuestionIn,
@@ -139,6 +143,39 @@ def get_teams() -> TeamListResponse:
         for row in db.get_teams()
     ]
     return TeamListResponse(entries=entries)
+
+
+@app.get("/api/admin/teams", response_model=TeamListResponse)
+def get_admin_teams() -> TeamListResponse:
+    entries = [
+        {
+            "team": row["team"],
+            "media_path": row["media_path"],
+        }
+        for row in db.get_teams()
+    ]
+    return TeamListResponse(entries=entries)
+
+
+@app.put("/api/admin/teams/{team_key}", response_model=TeamEntry)
+def update_admin_team(team_key: str, payload: TeamEntry) -> TeamEntry:
+    if "/" in payload.team or "\\" in payload.team:
+        raise HTTPException(status_code=400, detail="Некорректное имя команды")
+    try:
+        updated = db.update_team(team_key, payload.team, payload.media_path)
+    except ValueError:
+        raise HTTPException(status_code=409, detail="Команда уже существует")
+    if not updated:
+        raise HTTPException(status_code=404, detail="Команда не найдена")
+    return payload
+
+
+@app.delete("/api/admin/teams/{team_key}")
+def delete_admin_team(team_key: str) -> dict:
+    deleted = db.delete_team(team_key)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Команда не найдена")
+    return {"status": "deleted"}
 @app.get("/api/truth-or-myth", response_model=TruthOrMythResponse)
 def get_truth_or_myth_questions(
     limit: int = Query(default=6, ge=1, le=20)
@@ -166,53 +203,55 @@ def get_true_false_questions() -> TrueFalseQuestionList:
     return TrueFalseQuestionList(entries=entries)
 
 
-@app.get("/api/admin/questions", response_model=TrueFalseQuestionList)
-def get_admin_true_false_questions() -> TrueFalseQuestionList:
+@app.get("/api/admin/questions", response_model=TruthOrMythAdminList)
+def get_admin_truth_or_myth_questions() -> TruthOrMythAdminList:
     entries = [
         {
-            "id": int(row["id"]),
-            "question": row["question"],
-            "answer": bool(row["answer"]),
+            "id": row["id"],
+            "statement": row["statement"],
+            "is_true": bool(row["is_true"]),
             "is_active": bool(row["is_active"]),
         }
-        for row in db.list_true_false_questions(include_inactive=True)
+        for row in db.list_truth_or_myth_questions(include_inactive=True)
     ]
-    return TrueFalseQuestionList(entries=entries)
+    return TruthOrMythAdminList(entries=entries)
 
 
-@app.post("/api/admin/questions", response_model=TrueFalseQuestion)
-def create_admin_true_false_question(payload: TrueFalseQuestionIn) -> TrueFalseQuestion:
-    question_id = db.create_true_false_question(
-        payload.question, payload.answer, payload.is_active
+@app.post("/api/admin/questions", response_model=TruthOrMythAdminEntry)
+def create_admin_truth_or_myth_question(
+    payload: TruthOrMythAdminIn,
+) -> TruthOrMythAdminEntry:
+    question_id = db.create_truth_or_myth_question(
+        payload.statement, payload.is_true, payload.is_active
     )
-    return TrueFalseQuestion(
+    return TruthOrMythAdminEntry(
         id=question_id,
-        question=payload.question,
-        answer=payload.answer,
+        statement=payload.statement,
+        is_true=payload.is_true,
         is_active=payload.is_active,
     )
 
 
-@app.put("/api/admin/questions/{question_id}", response_model=TrueFalseQuestion)
-def update_admin_true_false_question(
-    question_id: int, payload: TrueFalseQuestionIn
-) -> TrueFalseQuestion:
-    updated = db.update_true_false_question(
-        question_id, payload.question, payload.answer, payload.is_active
+@app.put("/api/admin/questions/{question_id}", response_model=TruthOrMythAdminEntry)
+def update_admin_truth_or_myth_question(
+    question_id: str, payload: TruthOrMythAdminIn
+) -> TruthOrMythAdminEntry:
+    updated = db.update_truth_or_myth_question(
+        question_id, payload.statement, payload.is_true, payload.is_active
     )
     if not updated:
         raise HTTPException(status_code=404, detail="Вопрос не найден")
-    return TrueFalseQuestion(
+    return TruthOrMythAdminEntry(
         id=question_id,
-        question=payload.question,
-        answer=payload.answer,
+        statement=payload.statement,
+        is_true=payload.is_true,
         is_active=payload.is_active,
     )
 
 
 @app.delete("/api/admin/questions/{question_id}")
-def delete_admin_true_false_question(question_id: int) -> dict:
-    deleted = db.delete_true_false_question(question_id)
+def delete_admin_truth_or_myth_question(question_id: str) -> dict:
+    deleted = db.delete_truth_or_myth_question(question_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Вопрос не найден")
     return {"status": "deleted"}
@@ -222,10 +261,10 @@ def delete_admin_true_false_question(question_id: int) -> dict:
 def get_admin_videos() -> VideoListResponse:
     entries: list[VideoEntry] = []
     entries.append(_build_video_entry(DEFAULT_TEAM_KEY, MEDIA_DIR, True))
-
-    for item in sorted(MEDIA_DIR.iterdir(), key=lambda path: path.name.lower()):
-        if item.is_dir():
-            entries.append(_build_video_entry(item.name, item, False))
+    for row in db.get_teams():
+        team_key = row["team"]
+        team_dir = _team_directory(team_key)
+        entries.append(_build_video_entry(team_key, team_dir, False))
 
     return VideoListResponse(entries=entries)
 
@@ -250,6 +289,10 @@ async def upload_admin_video(team_key: str, file: UploadFile = File(...)) -> Vid
             shutil.copyfileobj(file.file, buffer)
     finally:
         await file.close()
+
+    if team_key != DEFAULT_TEAM_KEY:
+        media_path = f"{team_key}/{target_name}"
+        db.upsert_team(team_key, media_path)
 
     return _build_video_entry(
         team_key, team_dir, is_default=team_key == DEFAULT_TEAM_KEY

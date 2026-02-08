@@ -1,8 +1,6 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
-const TEAM_VIDEO_PATH_KEY = 'memoGameTeam'
 export const API_BASE =
   import.meta.env.VITE_API_BASE || 'http://localhost:8000'
-const TEAM_STORAGE_KEY = 'memoGameTeam'
+const TEAM_VIDEO_PATH_KEY = 'memoGameTeam'
 const REGISTRATION_ID_KEY = 'memoGameRegistrationId'
 const LAST_GAME_MOVES_KEY = 'memoGameLastMoves'
 const LAST_GAME_TOKEN_KEY = 'memoGameLastGameToken'
@@ -62,6 +60,10 @@ export async function fetchTeams() {
   if (!response.ok) {
     const message = await response.text()
     throw new Error(message || 'Ошибка загрузки команд')
+  }
+  return response.json()
+}
+
 export async function fetchTruthOrMythQuestions(limit = 6) {
   const params = new URLSearchParams({ limit: String(limit) })
   const response = await fetch(
@@ -70,6 +72,10 @@ export async function fetchTruthOrMythQuestions(limit = 6) {
   if (!response.ok) {
     const message = await response.text()
     throw new Error(message || 'Ошибка загрузки вопросов')
+  }
+  return response.json()
+}
+
 export async function fetchAdminVideos() {
   const response = await fetch(`${API_BASE}/api/admin/videos`)
   if (!response.ok) {
@@ -79,8 +85,19 @@ export async function fetchAdminVideos() {
   return response.json()
 }
 
+export async function fetchAdminTeams() {
+  const response = await fetch(`${API_BASE}/api/admin/teams`)
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || 'Ошибка загрузки команд')
+  }
+  return response.json()
+}
+
 export function saveSelectedTeam(videoPath) {
   localStorage.setItem(TEAM_VIDEO_PATH_KEY, videoPath)
+}
+
 export async function uploadAdminVideo(teamKey, file) {
   const formData = new FormData()
   formData.append('file', file)
@@ -92,6 +109,32 @@ export async function uploadAdminVideo(teamKey, file) {
   if (!response.ok) {
     const message = await response.text()
     throw new Error(message || 'Ошибка загрузки видео')
+  }
+  return response.json()
+}
+
+export async function updateAdminTeam(teamKey, payload) {
+  const encodedKey = encodeURIComponent(teamKey)
+  const response = await fetch(`${API_BASE}/api/admin/teams/${encodedKey}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || 'Ошибка обновления команды')
+  }
+  return response.json()
+}
+
+export async function deleteAdminTeam(teamKey) {
+  const encodedKey = encodeURIComponent(teamKey)
+  const response = await fetch(`${API_BASE}/api/admin/teams/${encodedKey}`, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || 'Ошибка удаления команды')
   }
   return response.json()
 }
@@ -148,15 +191,8 @@ export async function deleteAdminQuestion(questionId) {
   return response.json()
 }
 
-export function saveSelectedTeam(team) {
-  localStorage.setItem(TEAM_STORAGE_KEY, team)
-}
-
 export function getSelectedTeam() {
   const storedTeam = localStorage.getItem(TEAM_VIDEO_PATH_KEY) || ''
-  // #region agent log
-  fetch('http://127.0.0.1:7247/ingest/4466ca90-6875-42e7-b2f1-f4c1f0127932',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A',location:'frontend/src/api.js:getSelectedTeam',message:'Selected team from storage',data:{storedTeam},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   return storedTeam
 }
 
@@ -215,8 +251,5 @@ export function getVideoUrl(videoPath = '') {
     .split('/')
     .map((segment) => encodeURIComponent(segment))
     .join('/')
-  // #region agent log
-  fetch('http://127.0.0.1:7247/ingest/4466ca90-6875-42e7-b2f1-f4c1f0127932',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'B',location:'frontend/src/api.js:getVideoUrl',message:'Compute video URL',data:{videoPath, normalizedPath, encodedPath, apiBase: API_BASE},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   return `${API_BASE}/media/${encodedPath}`
 }

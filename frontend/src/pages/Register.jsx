@@ -96,8 +96,8 @@ export default function Register() {
       <div className="card-panel">
         <h1>Игровая регистрация</h1>
         <p className="subtitle">
-          Заполните регистрацию и получите случайную игру: Memo или «Правда или
-          миф».
+          Заполните регистрацию и пройдите две игры в случайном порядке: Memo и
+          «Правда или миф».
         </p>
         <form className="form" onSubmit={onSubmit}>
           <label className="field">
@@ -136,9 +136,6 @@ export default function Register() {
             {loading ? 'Отправляем...' : 'Начать игру'}
           </button>
         </form>
-        <Link className="link-button subtle" to="/admin">
-          Перейти в админку
-        </Link>
       </div>
     </div>
   )

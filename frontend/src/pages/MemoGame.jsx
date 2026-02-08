@@ -18,12 +18,13 @@ const buildDeck = () => {
   return pairs
 }
 
-export default function MemoGame() {
+export default function MemoGame({ onComplete }) {
   const [cards, setCards] = useState(() => buildDeck())
   const [flipped, setFlipped] = useState([])
   const [moves, setMoves] = useState(0)
   const navigate = useNavigate()
   const savedResultRef = useRef(false)
+  const completedRef = useRef(false)
 
   const allMatched = useMemo(
     () => cards.length > 0 && cards.every((card) => card.matched),
@@ -31,15 +32,23 @@ export default function MemoGame() {
   )
 
   useEffect(() => {
-    if (allMatched) {
-      if (!savedResultRef.current) {
-        saveLastGame(moves)
-        savedResultRef.current = true
-      }
-      const timer = setTimeout(() => navigate('/victory'), 600)
-      return () => clearTimeout(timer)
+    if (!allMatched || completedRef.current) return
+
+    if (!savedResultRef.current) {
+      saveLastGame(moves)
+      savedResultRef.current = true
     }
-  }, [allMatched, moves, navigate])
+
+    completedRef.current = true
+    const timer = setTimeout(() => {
+      if (onComplete) {
+        onComplete()
+      } else {
+        navigate('/victory')
+      }
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [allMatched, moves, navigate, onComplete])
 
   useEffect(() => {
     if (flipped.length !== 2) return
@@ -80,6 +89,7 @@ export default function MemoGame() {
     setFlipped([])
     setMoves(0)
     savedResultRef.current = false
+    completedRef.current = false
   }
 
   return (

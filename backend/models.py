@@ -67,6 +67,33 @@ class VideoListResponse(BaseModel):
     entries: list[VideoEntry]
 
 
+class TruthOrMythEntry(BaseModel):
+    id: str
+    statement: str
+    is_true: bool
+
+
+class TruthOrMythResponse(BaseModel):
+    entries: list[TruthOrMythEntry]
+
+
+class TruthOrMythAdminIn(BaseModel):
+    statement: str = Field(min_length=1, max_length=500)
+    is_true: bool
+    is_active: bool = True
+
+
+class TruthOrMythAdminEntry(BaseModel):
+    id: str
+    statement: str
+    is_true: bool
+    is_active: bool
+
+
+class TruthOrMythAdminList(BaseModel):
+    entries: list[TruthOrMythAdminEntry]
+
+
 class TrueFalseQuestionIn(BaseModel):
     question: str = Field(min_length=1, max_length=500)
     answer: bool

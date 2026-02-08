@@ -181,22 +181,6 @@ button:disabled {
   min-width: 180px;
 }
 
-.truth-button.truth {
-  background: #16a34a;
-}
-
-.truth-button.truth:hover {
-  background: #15803d;
-}
-
-.truth-button.myth {
-  background: #dc2626;
-}
-
-.truth-button.myth:hover {
-  background: #b91c1c;
-}
-
 .truth-meta {
   color: #6b7280;
   font-size: 0.9rem;
@@ -306,6 +290,56 @@ button:disabled {
   gap: 24px;
 }
 
+.admin-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 16px;
+  align-self: stretch;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  background-color: #ffffff;
+  opacity: 1;
+  border-radius: 16px;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.08);
+  z-index: 5;
+}
+
+.admin-sidebar-title {
+  font-weight: 600;
+  color: #111827;
+  margin-right: 8px;
+}
+
+.admin-sidebar-link {
+  text-decoration: none;
+  color: #374151;
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 8px 14px;
+  border: 1px solid #e5e7eb;
+  transition: background 0.2s ease, border 0.2s ease;
+}
+
+.admin-sidebar-link:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+.admin-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 .admin-header {
   display: flex;
   align-items: center;
@@ -321,6 +355,7 @@ button:disabled {
   background: #f9fafb;
   border-radius: 16px;
   padding: 16px;
+  scroll-margin-top: 90px;
 }
 
 .admin-section-header {
@@ -397,6 +432,34 @@ button:disabled {
   gap: 12px;
 }
 
+.admin-team-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-team-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.admin-team-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.admin-team-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .admin-question-list {
   display: flex;
   flex-direction: column;
@@ -440,4 +503,10 @@ button:disabled {
   flex-direction: row;
   align-items: center;
   gap: 8px;
+}
+
+@media (max-width: 840px) {
+  .admin-sidebar {
+    position: static;
+  }
 }
