@@ -1,30 +1,76 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import MemoGame from './MemoGame.jsx'
 import TruthOrMyth from './TruthOrMyth.jsx'
+import ReactionGame from './ReactionGame.jsx'
+import { fetchPlayedGames, getRegistrationId } from '../api.js'
 
-const buildGameOrder = () =>
-  Math.random() < 0.5 ? ['memo', 'truth-or-myth'] : ['truth-or-myth', 'memo']
+const GAMES = ['memo', 'truth-or-myth', 'reaction']
+const SLUG_TO_TYPE = { memo: 'memo', 'truth-or-myth': 'truth_or_myth', reaction: 'reaction' }
+
+const buildGameOrder = () => {
+  const order = [...GAMES]
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[order[i], order[j]] = [order[j], order[i]]
+  }
+  return order
+}
 
 export default function Game() {
   const [gameOrder] = useState(() => buildGameOrder())
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [playedGames, setPlayedGames] = useState([])
+  const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
-  const handleComplete = useCallback(() => {
-    const nextIndex = currentIndex + 1
-    if (nextIndex >= gameOrder.length) {
-      navigate('/victory')
+  useEffect(() => {
+    const regId = getRegistrationId()
+    if (!regId) {
+      setLoading(false)
       return
     }
-    setCurrentIndex(nextIndex)
-  }, [currentIndex, gameOrder.length, navigate])
+    fetchPlayedGames(regId)
+      .then(setPlayedGames)
+      .catch(() => setPlayedGames([]))
+      .finally(() => setLoading(false))
+  }, [])
 
-  const currentGame = gameOrder[currentIndex]
-
-  return currentGame === 'memo' ? (
-    <MemoGame onComplete={handleComplete} />
-  ) : (
-    <TruthOrMyth onComplete={handleComplete} />
+  const availableGames = gameOrder.filter(
+    (slug) => !playedGames.includes(SLUG_TO_TYPE[slug])
   )
+
+  useEffect(() => {
+    if (loading) return
+    if (availableGames.length === 0) {
+      navigate('/victory')
+    }
+  }, [loading, availableGames.length, navigate])
+
+  const handleComplete = useCallback(() => {
+    const nextGame = availableGames[0]
+    const completedType = nextGame ? SLUG_TO_TYPE[nextGame] : null
+    const next = [...playedGames, completedType]
+    const remaining = gameOrder.filter((s) => !next.includes(SLUG_TO_TYPE[s]))
+    setPlayedGames(next)
+    if (remaining.length === 0) {
+      navigate('/victory')
+    }
+  }, [availableGames, playedGames, gameOrder, navigate])
+
+  const currentGame = availableGames[0]
+
+  if (loading || availableGames.length === 0) {
+    return (
+      <div className="page">
+        <div className="card-panel wide">
+          <p className="subtitle">{loading ? 'Загрузка...' : 'Перенаправление...'}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (currentGame === 'memo') return <MemoGame onComplete={handleComplete} />
+  if (currentGame === 'truth-or-myth')
+    return <TruthOrMyth onComplete={handleComplete} />
+  return <ReactionGame onComplete={handleComplete} />
 }

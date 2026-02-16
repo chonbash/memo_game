@@ -1,15 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { fetchTruthOrMythQuestions, saveLastGame } from '../api.js'
+import { fetchTruthOrMythQuestions, getRegistrationId, submitGameResult } from '../api.js'
+import GameCompleteScreen from '../components/GameCompleteScreen.jsx'
 
 const QUESTIONS_COUNT = 6
-const BASE_MOVES = 16
-const WRONG_PENALTY = 2
-
-const calculateMoves = (correctCount, totalCount) => {
-  const incorrect = Math.max(totalCount - correctCount, 0)
-  return BASE_MOVES + incorrect * WRONG_PENALTY
-}
 
 export default function TruthOrMyth({ onComplete }) {
   const [questions, setQuestions] = useState([])
@@ -46,16 +40,25 @@ export default function TruthOrMyth({ onComplete }) {
   const isComplete = totalQuestions > 0 && currentIndex >= totalQuestions
   const currentQuestion = !isComplete ? questions[currentIndex] : null
 
-  const moves = useMemo(
-    () => calculateMoves(correctCount, totalQuestions),
+  const wrongCount = useMemo(
+    () => Math.max(totalQuestions - correctCount, 0),
     [correctCount, totalQuestions],
   )
 
   useEffect(() => {
     if (!isComplete || savedResultRef.current) return
-    saveLastGame(moves)
     savedResultRef.current = true
-  }, [isComplete, moves])
+    const regId = getRegistrationId()
+    if (regId) {
+      submitGameResult({
+        registration_id: regId,
+        game_type: 'truth_or_myth',
+        moves: wrongCount,
+      }).catch(() => {
+        savedResultRef.current = false
+      })
+    }
+  }, [isComplete, wrongCount])
 
   const handleAnswer = (value) => {
     if (!currentQuestion) return
@@ -64,10 +67,6 @@ export default function TruthOrMyth({ onComplete }) {
       setCorrectCount((prev) => prev + 1)
     }
     setCurrentIndex((prev) => prev + 1)
-  }
-
-  const reset = () => {
-    loadQuestions()
   }
 
   const finish = () => {
@@ -93,9 +92,6 @@ export default function TruthOrMyth({ onComplete }) {
                 {totalQuestions}
               </span>
               <span>Правильные: {correctCount}</span>
-              <button type="button" className="ghost" onClick={reset}>
-                Сбросить
-              </button>
             </div>
           )}
         </div>
@@ -117,18 +113,12 @@ export default function TruthOrMyth({ onComplete }) {
 
         {!loading && !error && totalQuestions > 0 && isComplete && (
           <div className="truth-result">
-            <h2>Результат</h2>
-            <p className="subtitle">
-              Правильных ответов: {correctCount} из {totalQuestions}
-            </p>
-            <div className="truth-actions">
-              <button type="button" onClick={finish}>
-                Перейти к итогам
-              </button>
-              <button type="button" className="ghost" onClick={reset}>
-                Сыграть еще раз
-              </button>
-            </div>
+            <GameCompleteScreen
+              title="Результат"
+              subtitle={`Правильных ответов: ${correctCount} из ${totalQuestions}`}
+              buttonText="Перейти к итогам"
+              onNext={finish}
+            />
           </div>
         )}
 

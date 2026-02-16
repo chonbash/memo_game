@@ -1,6 +1,10 @@
 from pydantic import BaseModel, Field
 
 
+class AdminVerifyIn(BaseModel):
+    password: str = Field(min_length=1)
+
+
 class RegistrationIn(BaseModel):
     fio: str = Field(min_length=2, max_length=200)
     team: str = Field(min_length=1, max_length=100)
@@ -15,12 +19,14 @@ class RegistrationOut(BaseModel):
 
 class GameResultIn(BaseModel):
     registration_id: int = Field(gt=0)
-    moves: int = Field(gt=0, le=5000)
+    game_type: str = "memo"
+    moves: int = Field(ge=0, le=5000)  # score: lower is better (moves / level / wrong_answers)
 
 
 class GameResultOut(BaseModel):
     id: int
     registration_id: int
+    game_type: str
     moves: int
 
 

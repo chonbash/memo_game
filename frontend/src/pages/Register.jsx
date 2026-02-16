@@ -83,7 +83,7 @@ export default function Register() {
       })
       saveRegistrationId(registration.id)
       saveSelectedTeam(mediaPath)
-      navigate('/game')
+      navigate('/welcome')
     } catch (err) {
       setError(err.message || 'Ошибка регистрации')
     } finally {

@@ -2,15 +2,19 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   API_BASE,
+  clearAdminAuth,
   createAdminQuestion,
   deleteAdminQuestion,
   deleteAdminTeam,
   fetchAdminTeams,
   fetchAdminQuestions,
   fetchAdminVideos,
+  isAdminAuthenticated,
+  resetAdminResults,
   updateAdminTeam,
   updateAdminQuestion,
   uploadAdminVideo,
+  verifyAdminPassword,
 } from '../api.js'
 
 const DEFAULT_VIDEO_KEY = 'default'
@@ -22,6 +26,11 @@ const buildEmptyQuestion = () => ({
 })
 
 export default function Admin() {
+  const [authenticated, setAuthenticated] = useState(isAdminAuthenticated())
+  const [password, setPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordLoading, setPasswordLoading] = useState(false)
+
   const [videos, setVideos] = useState([])
   const [videosLoading, setVideosLoading] = useState(true)
   const [videosError, setVideosError] = useState('')
@@ -43,6 +52,8 @@ export default function Admin() {
   const [questionBusyIds, setQuestionBusyIds] = useState({})
   const [questionActionError, setQuestionActionError] = useState('')
   const [newQuestion, setNewQuestion] = useState(buildEmptyQuestion())
+  const [resetResultsBusy, setResetResultsBusy] = useState(false)
+  const [resetResultsError, setResetResultsError] = useState('')
 
   const loadVideos = async () => {
     try {
@@ -89,10 +100,37 @@ export default function Admin() {
   }
 
   useEffect(() => {
-    loadVideos()
-    loadTeams()
-    loadQuestions()
-  }, [])
+    if (authenticated) {
+      loadVideos()
+      loadTeams()
+      loadQuestions()
+    }
+  }, [authenticated])
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault()
+    const pwd = password.trim()
+    if (!pwd) {
+      setPasswordError('Введите пароль')
+      return
+    }
+    try {
+      setPasswordError('')
+      setPasswordLoading(true)
+      await verifyAdminPassword(pwd)
+      setAuthenticated(true)
+      setPassword('')
+    } catch (err) {
+      setPasswordError(err.message || 'Неверный пароль')
+    } finally {
+      setPasswordLoading(false)
+    }
+  }
+
+  const handleLogout = () => {
+    clearAdminAuth()
+    setAuthenticated(false)
+  }
 
   const handleFileChange = (teamKey, file) => {
     setPendingFiles((prev) => ({
@@ -291,6 +329,50 @@ export default function Admin() {
     }
   }
 
+  const handleResetResults = async () => {
+    const confirmed = window.confirm(
+      'Удалить все результаты игр (счёт и статистика команд будут обнулены)?',
+    )
+    if (!confirmed) return
+    try {
+      setResetResultsError('')
+      setResetResultsBusy(true)
+      await resetAdminResults()
+    } catch (err) {
+      setResetResultsError(err.message || 'Не удалось сбросить результаты')
+    } finally {
+      setResetResultsBusy(false)
+    }
+  }
+
+  if (!authenticated) {
+    return (
+      <div className="page">
+        <div className="card-panel wide admin-panel" style={{ maxWidth: '24rem' }}>
+          <h1>Админка</h1>
+          <p className="subtitle">Введите пароль для входа</p>
+          <form onSubmit={handlePasswordSubmit}>
+            <label className="field">
+              <span>Пароль</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Пароль"
+                autoFocus
+                autoComplete="current-password"
+              />
+            </label>
+            {passwordError && <div className="error">{passwordError}</div>}
+            <button type="submit" disabled={passwordLoading}>
+              {passwordLoading ? 'Проверка...' : 'Войти'}
+            </button>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="page">
       <div className="card-panel wide admin-panel">
@@ -301,10 +383,26 @@ export default function Admin() {
               Управление видео для команд и вопросами «Правда или ложь».
             </p>
           </div>
-          <Link className="link-button" to="/">
-            К регистрации
-          </Link>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="ghost danger"
+              onClick={handleResetResults}
+              disabled={resetResultsBusy}
+            >
+              {resetResultsBusy ? 'Сброс...' : 'Сброс результатов'}
+            </button>
+            <button type="button" className="ghost" onClick={handleLogout}>
+              Выйти
+            </button>
+            <Link className="link-button" to="/">
+              К регистрации
+            </Link>
+          </div>
         </div>
+        {resetResultsError && (
+          <div className="error">{resetResultsError}</div>
+        )}
 
         <div className="admin-layout">
           <nav className="admin-sidebar">

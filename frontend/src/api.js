@@ -1,5 +1,6 @@
 export const API_BASE =
   import.meta.env.VITE_API_BASE || 'http://localhost:8000'
+const ADMIN_PASSWORD_KEY = 'memoGameAdminPassword'
 const TEAM_VIDEO_PATH_KEY = 'memoGameTeam'
 const REGISTRATION_ID_KEY = 'memoGameRegistrationId'
 const LAST_GAME_MOVES_KEY = 'memoGameLastMoves'
@@ -30,15 +31,31 @@ export async function submitGameResult(payload) {
   })
 
   if (!response.ok) {
-    const message = await response.text()
-    throw new Error(message || 'Ошибка сохранения результата')
+    const data = await response.json().catch(() => ({}))
+    const message = data.detail || (await response.text()) || 'Ошибка сохранения результата'
+    const err = new Error(message)
+    err.status = response.status
+    throw err
   }
 
   return response.json()
 }
 
-export async function fetchStats() {
-  const response = await fetch(`${API_BASE}/api/stats`)
+export async function fetchPlayedGames(registrationId) {
+  const params = new URLSearchParams({ registration_id: String(registrationId) })
+  const response = await fetch(`${API_BASE}/api/played-games?${params}`)
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || 'Ошибка загрузки')
+  }
+  const data = await response.json()
+  return data.played || []
+}
+
+export async function fetchStats(gameType = null) {
+  const params = gameType ? new URLSearchParams({ game_type: gameType }) : ''
+  const url = `${API_BASE}/api/stats${params ? `?${params}` : ''}`
+  const response = await fetch(url)
   if (!response.ok) {
     const message = await response.text()
     throw new Error(message || 'Ошибка загрузки статистики')
@@ -46,8 +63,10 @@ export async function fetchStats() {
   return response.json()
 }
 
-export async function fetchTeamStats() {
-  const response = await fetch(`${API_BASE}/api/team-stats`)
+export async function fetchTeamStats(gameType = null) {
+  const params = gameType ? new URLSearchParams({ game_type: gameType }) : ''
+  const url = `${API_BASE}/api/team-stats${params ? `?${params}` : ''}`
+  const response = await fetch(url)
   if (!response.ok) {
     const message = await response.text()
     throw new Error(message || 'Ошибка загрузки статистики команд')
@@ -76,8 +95,37 @@ export async function fetchTruthOrMythQuestions(limit = 6) {
   return response.json()
 }
 
+function getAdminHeaders() {
+  const password = sessionStorage.getItem(ADMIN_PASSWORD_KEY)
+  return password ? { 'X-Admin-Password': password } : {}
+}
+
+export async function verifyAdminPassword(password) {
+  const response = await fetch(`${API_BASE}/api/admin/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  })
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}))
+    throw new Error(data.detail || 'Неверный пароль')
+  }
+  sessionStorage.setItem(ADMIN_PASSWORD_KEY, password)
+  return true
+}
+
+export function clearAdminAuth() {
+  sessionStorage.removeItem(ADMIN_PASSWORD_KEY)
+}
+
+export function isAdminAuthenticated() {
+  return !!sessionStorage.getItem(ADMIN_PASSWORD_KEY)
+}
+
 export async function fetchAdminVideos() {
-  const response = await fetch(`${API_BASE}/api/admin/videos`)
+  const response = await fetch(`${API_BASE}/api/admin/videos`, {
+    headers: getAdminHeaders(),
+  })
   if (!response.ok) {
     const message = await response.text()
     throw new Error(message || 'Ошибка загрузки видео')
@@ -86,7 +134,9 @@ export async function fetchAdminVideos() {
 }
 
 export async function fetchAdminTeams() {
-  const response = await fetch(`${API_BASE}/api/admin/teams`)
+  const response = await fetch(`${API_BASE}/api/admin/teams`, {
+    headers: getAdminHeaders(),
+  })
   if (!response.ok) {
     const message = await response.text()
     throw new Error(message || 'Ошибка загрузки команд')
@@ -104,6 +154,7 @@ export async function uploadAdminVideo(teamKey, file) {
   const encodedKey = encodeURIComponent(teamKey)
   const response = await fetch(`${API_BASE}/api/admin/videos/${encodedKey}`, {
     method: 'POST',
+    headers: getAdminHeaders(),
     body: formData,
   })
   if (!response.ok) {
@@ -117,7 +168,7 @@ export async function updateAdminTeam(teamKey, payload) {
   const encodedKey = encodeURIComponent(teamKey)
   const response = await fetch(`${API_BASE}/api/admin/teams/${encodedKey}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
   if (!response.ok) {
@@ -131,6 +182,7 @@ export async function deleteAdminTeam(teamKey) {
   const encodedKey = encodeURIComponent(teamKey)
   const response = await fetch(`${API_BASE}/api/admin/teams/${encodedKey}`, {
     method: 'DELETE',
+    headers: getAdminHeaders(),
   })
   if (!response.ok) {
     const message = await response.text()
@@ -139,8 +191,22 @@ export async function deleteAdminTeam(teamKey) {
   return response.json()
 }
 
+export async function resetAdminResults() {
+  const response = await fetch(`${API_BASE}/api/admin/reset-results`, {
+    method: 'POST',
+    headers: getAdminHeaders(),
+  })
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || 'Ошибка сброса результатов')
+  }
+  return response.json()
+}
+
 export async function fetchAdminQuestions() {
-  const response = await fetch(`${API_BASE}/api/admin/questions`)
+  const response = await fetch(`${API_BASE}/api/admin/questions`, {
+    headers: getAdminHeaders(),
+  })
   if (!response.ok) {
     const message = await response.text()
     throw new Error(message || 'Ошибка загрузки вопросов')
@@ -151,7 +217,7 @@ export async function fetchAdminQuestions() {
 export async function createAdminQuestion(payload) {
   const response = await fetch(`${API_BASE}/api/admin/questions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
   if (!response.ok) {
@@ -166,7 +232,7 @@ export async function updateAdminQuestion(questionId, payload) {
     `${API_BASE}/api/admin/questions/${questionId}`,
     {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     },
   )
@@ -182,6 +248,7 @@ export async function deleteAdminQuestion(questionId) {
     `${API_BASE}/api/admin/questions/${questionId}`,
     {
       method: 'DELETE',
+      headers: getAdminHeaders(),
     },
   )
   if (!response.ok) {

@@ -36,6 +36,7 @@ def init_db() -> None:
             );
             """
         )
+        _ensure_game_results_game_type(conn)
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS teams (
@@ -142,6 +143,36 @@ def _ensure_truth_or_myth_active_column(conn: sqlite3.Connection) -> None:
         """
     )
 
+def _game_results_has_game_type(conn: sqlite3.Connection) -> bool:
+    cursor = conn.execute("PRAGMA table_info(game_results);")
+    return any(row["name"] == "game_type" for row in cursor.fetchall())
+
+
+def _ensure_game_results_game_type(conn: sqlite3.Connection) -> None:
+    if _game_results_has_game_type(conn):
+        return
+    conn.execute(
+        """
+        ALTER TABLE game_results ADD COLUMN game_type TEXT NOT NULL DEFAULT 'memo';
+        """
+    )
+    # Keep one result per registration (earliest) before unique index
+    conn.execute(
+        """
+        DELETE FROM game_results
+        WHERE id NOT IN (
+            SELECT MIN(id) FROM game_results GROUP BY registration_id
+        );
+        """
+    )
+    conn.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS ix_game_results_reg_game
+        ON game_results(registration_id, game_type);
+        """
+    )
+
+
 def _registration_has_email(conn: sqlite3.Connection) -> bool:
     cursor = conn.execute("PRAGMA table_info(registrations);")
     return any(row["name"] == "email" for row in cursor.fetchall())
@@ -166,12 +197,38 @@ def create_registration(fio: str, team: str, email: str | None = None) -> int:
         conn.close()
 
 
-def create_game_result(registration_id: int, moves: int) -> int:
+def has_played_game(registration_id: int, game_type: str) -> bool:
     conn = get_connection()
     try:
         cursor = conn.execute(
-            "INSERT INTO game_results (registration_id, moves) VALUES (?, ?)",
-            (registration_id, moves),
+            "SELECT 1 FROM game_results WHERE registration_id = ? AND game_type = ?",
+            (registration_id, game_type),
+        )
+        return cursor.fetchone() is not None
+    finally:
+        conn.close()
+
+
+def get_played_games(registration_id: int) -> list[str]:
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            "SELECT game_type FROM game_results WHERE registration_id = ?",
+            (registration_id,),
+        )
+        return [row["game_type"] for row in cursor.fetchall()]
+    finally:
+        conn.close()
+
+
+def create_game_result(registration_id: int, moves: int, game_type: str = "memo") -> int:
+    conn = get_connection()
+    try:
+        if has_played_game(registration_id, game_type):
+            raise ValueError("already_played")
+        cursor = conn.execute(
+            "INSERT INTO game_results (registration_id, game_type, moves) VALUES (?, ?, ?)",
+            (registration_id, game_type, moves),
         )
         conn.commit()
         return int(cursor.lastrowid)
@@ -260,46 +317,91 @@ def delete_team(team: str) -> bool:
         conn.close()
 
 
-def get_stats() -> list[sqlite3.Row]:
+def get_stats(game_type: str | None = None) -> list[sqlite3.Row]:
     conn = get_connection()
     try:
-        cursor = conn.execute(
-            """
-            SELECT
-                r.id AS registration_id,
-                r.fio AS fio,
-                r.team AS team,
-                COUNT(gr.id) AS games_count,
-                MIN(gr.moves) AS best_moves,
-                MAX(gr.created_at) AS last_played
-            FROM registrations r
-            JOIN game_results gr ON gr.registration_id = r.id
-            GROUP BY r.id
-            ORDER BY best_moves ASC, games_count DESC, last_played DESC, fio COLLATE NOCASE ASC;
-            """
-        )
+        if game_type:
+            cursor = conn.execute(
+                """
+                SELECT
+                    r.id AS registration_id,
+                    r.fio AS fio,
+                    r.team AS team,
+                    COUNT(gr.id) AS games_count,
+                    MIN(gr.moves) AS best_moves,
+                    MAX(gr.created_at) AS last_played
+                FROM registrations r
+                JOIN game_results gr ON gr.registration_id = r.id AND gr.game_type = ?
+                GROUP BY r.id
+                ORDER BY best_moves ASC, games_count DESC, last_played DESC, fio COLLATE NOCASE ASC;
+                """,
+                (game_type,),
+            )
+        else:
+            cursor = conn.execute(
+                """
+                SELECT
+                    r.id AS registration_id,
+                    r.fio AS fio,
+                    r.team AS team,
+                    COUNT(gr.id) AS games_count,
+                    MIN(gr.moves) AS best_moves,
+                    MAX(gr.created_at) AS last_played
+                FROM registrations r
+                JOIN game_results gr ON gr.registration_id = r.id
+                GROUP BY r.id
+                ORDER BY best_moves ASC, games_count DESC, last_played DESC, fio COLLATE NOCASE ASC;
+                """
+            )
         return cursor.fetchall()
     finally:
         conn.close()
 
 
-def get_team_stats() -> list[sqlite3.Row]:
+def get_team_stats(game_type: str | None = None) -> list[sqlite3.Row]:
     conn = get_connection()
     try:
-        cursor = conn.execute(
-            """
-            SELECT
-                r.team AS team,
-                COUNT(gr.id) AS games_count,
-                MIN(gr.moves) AS best_moves,
-                MAX(gr.created_at) AS last_played
-            FROM registrations r
-            JOIN game_results gr ON gr.registration_id = r.id
-            GROUP BY r.team
-            ORDER BY best_moves ASC, games_count DESC, last_played DESC, team COLLATE NOCASE ASC;
-            """
-        )
+        if game_type:
+            cursor = conn.execute(
+                """
+                SELECT
+                    r.team AS team,
+                    COUNT(gr.id) AS games_count,
+                    MIN(gr.moves) AS best_moves,
+                    MAX(gr.created_at) AS last_played
+                FROM registrations r
+                JOIN game_results gr ON gr.registration_id = r.id AND gr.game_type = ?
+                GROUP BY r.team
+                ORDER BY best_moves ASC, games_count DESC, last_played DESC, team COLLATE NOCASE ASC;
+                """,
+                (game_type,),
+            )
+        else:
+            cursor = conn.execute(
+                """
+                SELECT
+                    r.team AS team,
+                    COUNT(gr.id) AS games_count,
+                    MIN(gr.moves) AS best_moves,
+                    MAX(gr.created_at) AS last_played
+                FROM registrations r
+                JOIN game_results gr ON gr.registration_id = r.id
+                GROUP BY r.team
+                ORDER BY best_moves ASC, games_count DESC, last_played DESC, team COLLATE NOCASE ASC;
+                """
+            )
         return cursor.fetchall()
+    finally:
+        conn.close()
+
+
+def reset_all_game_results() -> int:
+    """Delete all rows from game_results. Returns number of deleted rows."""
+    conn = get_connection()
+    try:
+        cursor = conn.execute("DELETE FROM game_results;")
+        conn.commit()
+        return cursor.rowcount
     finally:
         conn.close()
 

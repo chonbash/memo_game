@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { saveLastGame } from '../api.js'
+import { getRegistrationId, submitGameResult } from '../api.js'
+import GameCompleteScreen from '../components/GameCompleteScreen.jsx'
 
 const symbols = ['🍀', '⭐', '🎯', '🎵', '🚀', '💎', '🎈', '🧩']
 
@@ -18,13 +19,21 @@ const buildDeck = () => {
   return pairs
 }
 
+const formatTime = (seconds) => {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
 export default function MemoGame({ onComplete }) {
   const [cards, setCards] = useState(() => buildDeck())
   const [flipped, setFlipped] = useState([])
   const [moves, setMoves] = useState(0)
+  const [showResult, setShowResult] = useState(false)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const navigate = useNavigate()
   const savedResultRef = useRef(false)
-  const completedRef = useRef(false)
+  const startTimeRef = useRef(Date.now())
 
   const allMatched = useMemo(
     () => cards.length > 0 && cards.every((card) => card.matched),
@@ -32,23 +41,34 @@ export default function MemoGame({ onComplete }) {
   )
 
   useEffect(() => {
-    if (!allMatched || completedRef.current) return
+    if (!showResult) return
+    const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000)
+    setElapsedSeconds(elapsed)
+  }, [showResult])
+
+  useEffect(() => {
+    if (!allMatched) return
 
     if (!savedResultRef.current) {
-      saveLastGame(moves)
       savedResultRef.current = true
+      const regId = getRegistrationId()
+      if (regId) {
+        submitGameResult({ registration_id: regId, game_type: 'memo', moves }).catch(
+          () => { savedResultRef.current = false }
+        )
+      }
     }
 
-    completedRef.current = true
-    const timer = setTimeout(() => {
-      if (onComplete) {
-        onComplete()
-      } else {
-        navigate('/victory')
-      }
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [allMatched, moves, navigate, onComplete])
+    setShowResult(true)
+  }, [allMatched, moves])
+
+  const goToNext = () => {
+    if (onComplete) {
+      onComplete()
+    } else {
+      navigate('/victory')
+    }
+  }
 
   useEffect(() => {
     if (flipped.length !== 2) return
@@ -84,12 +104,34 @@ export default function MemoGame({ onComplete }) {
     setMoves((prev) => prev + 1)
   }
 
-  const reset = () => {
-    setCards(buildDeck())
-    setFlipped([])
-    setMoves(0)
-    savedResultRef.current = false
-    completedRef.current = false
+  if (showResult) {
+    return (
+      <div className="page">
+        <div className="card-panel wide memo-result-panel">
+          <GameCompleteScreen
+            title="Мемо пройдено!"
+            subtitle="Все пары найдены"
+            stats={
+              <div className="memo-result-stats">
+                <div className="memo-result-stat">
+                  <span className="memo-result-value">{moves}</span>
+                  <span className="memo-result-label">ходов</span>
+                </div>
+                <div className="memo-result-stat">
+                  <span className="memo-result-value">{formatTime(elapsedSeconds)}</span>
+                  <span className="memo-result-label">время</span>
+                </div>
+              </div>
+            }
+            buttonText="Следующая игра →"
+            onNext={goToNext}
+            titleTag="h1"
+            buttonClassName="primary-button"
+            buttonWrapperClassName=""
+          />
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -102,9 +144,6 @@ export default function MemoGame({ onComplete }) {
           </div>
           <div className="stats">
             <span>Ходы: {moves}</span>
-            <button type="button" className="ghost" onClick={reset}>
-              Сбросить
-            </button>
           </div>
         </div>
 

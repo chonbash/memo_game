@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
 import Register from './pages/Register.jsx'
+import Welcome from './pages/Welcome.jsx'
 import Game from './pages/Game.jsx'
 import Victory from './pages/Victory.jsx'
 import Admin from './pages/Admin.jsx'
@@ -10,6 +11,7 @@ function App() {
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route path="/" element={<Register />} />
+        <Route path="/welcome" element={<Welcome />} />
         <Route path="/game" element={<Game />} />
         <Route path="/victory" element={<Victory />} />
         <Route path="/admin" element={<Admin />} />

@@ -1,14 +1,15 @@
+import os
 from pathlib import Path
 import shutil
 from urllib.parse import quote
 
-from fastapi import FastAPI, Query
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 import db
 from models import (
+    AdminVerifyIn,
     GameResultIn,
     GameResultOut,
     RegistrationIn,
@@ -31,8 +32,16 @@ from models import (
 MEDIA_DIR = Path(__file__).resolve().parent / "media"
 TEAM_VIDEO_BASENAME = "congrats"
 DEFAULT_TEAM_KEY = "default"
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
 
 app = FastAPI()
+
+
+def verify_admin(
+    x_admin_password: str | None = Header(default=None, alias="X-Admin-Password"),
+) -> None:
+    if not x_admin_password or x_admin_password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Неверный пароль")
 
 app.add_middleware(
     CORSMiddleware,
@@ -97,14 +106,34 @@ def register(payload: RegistrationIn) -> RegistrationOut:
     return RegistrationOut(id=reg_id, **payload.model_dump())
 
 
+@app.get("/api/played-games")
+def get_played_games(registration_id: int = Query(gt=0)) -> dict:
+    played = db.get_played_games(registration_id)
+    return {"played": played}
+
+
 @app.post("/api/game-result", response_model=GameResultOut)
 def create_game_result(payload: GameResultIn) -> GameResultOut:
-    result_id = db.create_game_result(payload.registration_id, payload.moves)
+    if payload.game_type not in ("memo", "truth_or_myth", "reaction"):
+        raise HTTPException(status_code=400, detail="Недопустимый тип игры")
+    try:
+        result_id = db.create_game_result(
+            payload.registration_id, payload.moves, payload.game_type
+        )
+    except ValueError as e:
+        if str(e) == "already_played":
+            raise HTTPException(
+                status_code=409,
+                detail="Вы уже проходили эту игру. Каждую игру можно сыграть только один раз.",
+            )
+        raise
     return GameResultOut(id=result_id, **payload.model_dump())
 
 
 @app.get("/api/stats", response_model=StatsResponse)
-def get_stats() -> StatsResponse:
+def get_stats(game_type: str | None = Query(default=None)) -> StatsResponse:
+    if game_type and game_type not in ("memo", "truth_or_myth", "reaction"):
+        raise HTTPException(status_code=400, detail="Недопустимый тип игры")
     entries = [
         {
             "registration_id": int(row["registration_id"]),
@@ -114,13 +143,15 @@ def get_stats() -> StatsResponse:
             "best_moves": int(row["best_moves"]),
             "last_played": row["last_played"],
         }
-        for row in db.get_stats()
+        for row in db.get_stats(game_type)
     ]
     return StatsResponse(entries=entries)
 
 
 @app.get("/api/team-stats", response_model=TeamStatsResponse)
-def get_team_stats() -> TeamStatsResponse:
+def get_team_stats(game_type: str | None = Query(default=None)) -> TeamStatsResponse:
+    if game_type and game_type not in ("memo", "truth_or_myth", "reaction"):
+        raise HTTPException(status_code=400, detail="Недопустимый тип игры")
     entries = [
         {
             "team": row["team"],
@@ -128,7 +159,7 @@ def get_team_stats() -> TeamStatsResponse:
             "best_moves": int(row["best_moves"]),
             "last_played": row["last_played"],
         }
-        for row in db.get_team_stats()
+        for row in db.get_team_stats(game_type)
     ]
     return TeamStatsResponse(entries=entries)
 
@@ -145,8 +176,15 @@ def get_teams() -> TeamListResponse:
     return TeamListResponse(entries=entries)
 
 
+@app.post("/api/admin/verify")
+def admin_verify(payload: AdminVerifyIn) -> dict:
+    if payload.password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Неверный пароль")
+    return {"ok": True}
+
+
 @app.get("/api/admin/teams", response_model=TeamListResponse)
-def get_admin_teams() -> TeamListResponse:
+def get_admin_teams(_: None = Depends(verify_admin)) -> TeamListResponse:
     entries = [
         {
             "team": row["team"],
@@ -158,7 +196,9 @@ def get_admin_teams() -> TeamListResponse:
 
 
 @app.put("/api/admin/teams/{team_key}", response_model=TeamEntry)
-def update_admin_team(team_key: str, payload: TeamEntry) -> TeamEntry:
+def update_admin_team(
+    team_key: str, payload: TeamEntry, _: None = Depends(verify_admin)
+) -> TeamEntry:
     if "/" in payload.team or "\\" in payload.team:
         raise HTTPException(status_code=400, detail="Некорректное имя команды")
     try:
@@ -171,11 +211,19 @@ def update_admin_team(team_key: str, payload: TeamEntry) -> TeamEntry:
 
 
 @app.delete("/api/admin/teams/{team_key}")
-def delete_admin_team(team_key: str) -> dict:
+def delete_admin_team(team_key: str, _: None = Depends(verify_admin)) -> dict:
     deleted = db.delete_team(team_key)
     if not deleted:
         raise HTTPException(status_code=404, detail="Команда не найдена")
     return {"status": "deleted"}
+
+
+@app.post("/api/admin/reset-results")
+def reset_admin_results(_: None = Depends(verify_admin)) -> dict:
+    deleted = db.reset_all_game_results()
+    return {"status": "ok", "deleted_count": deleted}
+
+
 @app.get("/api/truth-or-myth", response_model=TruthOrMythResponse)
 def get_truth_or_myth_questions(
     limit: int = Query(default=6, ge=1, le=20)
@@ -204,7 +252,9 @@ def get_true_false_questions() -> TrueFalseQuestionList:
 
 
 @app.get("/api/admin/questions", response_model=TruthOrMythAdminList)
-def get_admin_truth_or_myth_questions() -> TruthOrMythAdminList:
+def get_admin_truth_or_myth_questions(
+    _: None = Depends(verify_admin),
+) -> TruthOrMythAdminList:
     entries = [
         {
             "id": row["id"],
@@ -219,7 +269,7 @@ def get_admin_truth_or_myth_questions() -> TruthOrMythAdminList:
 
 @app.post("/api/admin/questions", response_model=TruthOrMythAdminEntry)
 def create_admin_truth_or_myth_question(
-    payload: TruthOrMythAdminIn,
+    payload: TruthOrMythAdminIn, _: None = Depends(verify_admin)
 ) -> TruthOrMythAdminEntry:
     question_id = db.create_truth_or_myth_question(
         payload.statement, payload.is_true, payload.is_active
@@ -234,7 +284,9 @@ def create_admin_truth_or_myth_question(
 
 @app.put("/api/admin/questions/{question_id}", response_model=TruthOrMythAdminEntry)
 def update_admin_truth_or_myth_question(
-    question_id: str, payload: TruthOrMythAdminIn
+    question_id: str,
+    payload: TruthOrMythAdminIn,
+    _: None = Depends(verify_admin),
 ) -> TruthOrMythAdminEntry:
     updated = db.update_truth_or_myth_question(
         question_id, payload.statement, payload.is_true, payload.is_active
@@ -250,7 +302,9 @@ def update_admin_truth_or_myth_question(
 
 
 @app.delete("/api/admin/questions/{question_id}")
-def delete_admin_truth_or_myth_question(question_id: str) -> dict:
+def delete_admin_truth_or_myth_question(
+    question_id: str, _: None = Depends(verify_admin)
+) -> dict:
     deleted = db.delete_truth_or_myth_question(question_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Вопрос не найден")
@@ -258,7 +312,7 @@ def delete_admin_truth_or_myth_question(question_id: str) -> dict:
 
 
 @app.get("/api/admin/videos", response_model=VideoListResponse)
-def get_admin_videos() -> VideoListResponse:
+def get_admin_videos(_: None = Depends(verify_admin)) -> VideoListResponse:
     entries: list[VideoEntry] = []
     entries.append(_build_video_entry(DEFAULT_TEAM_KEY, MEDIA_DIR, True))
     for row in db.get_teams():
@@ -270,7 +324,11 @@ def get_admin_videos() -> VideoListResponse:
 
 
 @app.post("/api/admin/videos/{team_key}", response_model=VideoEntry)
-async def upload_admin_video(team_key: str, file: UploadFile = File(...)) -> VideoEntry:
+async def upload_admin_video(
+    team_key: str,
+    file: UploadFile = File(...),
+    _: None = Depends(verify_admin),
+) -> VideoEntry:
     team_dir = _team_directory(team_key)
     team_dir.mkdir(parents=True, exist_ok=True)
 
