@@ -18,6 +18,8 @@ from models import (
     TeamEntry,
     TeamListResponse,
     TeamStatsResponse,
+    TeamTotalEntry,
+    TeamTotalStatsResponse,
     TruthOrMythAdminEntry,
     TruthOrMythAdminIn,
     TruthOrMythAdminList,
@@ -162,6 +164,22 @@ def get_team_stats(game_type: str | None = Query(default=None)) -> TeamStatsResp
         for row in db.get_team_stats(game_type)
     ]
     return TeamStatsResponse(entries=entries)
+
+
+@app.get("/api/team-total-stats", response_model=TeamTotalStatsResponse)
+def get_team_total_stats() -> TeamTotalStatsResponse:
+    entries = [
+        {
+            "team": row["team"],
+            "games_played": int(row["games_played"]),
+            "total_score": int(row["total_score"]),
+            "memo_best": int(row["memo_best"]) if row["memo_best"] is not None else None,
+            "truth_or_myth_best": int(row["truth_or_myth_best"]) if row["truth_or_myth_best"] is not None else None,
+            "reaction_best": int(row["reaction_best"]) if row["reaction_best"] is not None else None,
+        }
+        for row in db.get_team_total_standings()
+    ]
+    return TeamTotalStatsResponse(entries=entries)
 
 
 @app.get("/api/teams", response_model=TeamListResponse)

@@ -74,6 +74,15 @@ export async function fetchTeamStats(gameType = null) {
   return response.json()
 }
 
+export async function fetchTeamTotalStats() {
+  const response = await fetch(`${API_BASE}/api/team-total-stats`)
+  if (!response.ok) {
+    const message = await response.text()
+    throw new Error(message || 'Ошибка загрузки командного зачёта')
+  }
+  return response.json()
+}
+
 export async function fetchTeams() {
   const response = await fetch(`${API_BASE}/api/teams`)
   if (!response.ok) {

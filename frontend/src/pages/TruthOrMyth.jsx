@@ -5,7 +5,7 @@ import GameCompleteScreen from '../components/GameCompleteScreen.jsx'
 
 const QUESTIONS_COUNT = 6
 
-export default function TruthOrMyth({ onComplete }) {
+export default function TruthOrMyth({ onComplete, isLastGame }) {
   const [questions, setQuestions] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [correctCount, setCorrectCount] = useState(0)
@@ -116,7 +116,7 @@ export default function TruthOrMyth({ onComplete }) {
             <GameCompleteScreen
               title="Результат"
               subtitle={`Правильных ответов: ${correctCount} из ${totalQuestions}`}
-              buttonText="Перейти к итогам"
+              buttonText={isLastGame ? 'Перейти к итогам' : 'К следующему испытанию'}
               onNext={finish}
             />
           </div>

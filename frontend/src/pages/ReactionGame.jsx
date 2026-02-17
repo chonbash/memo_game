@@ -5,15 +5,15 @@ import GameCompleteScreen from '../components/GameCompleteScreen.jsx'
 
 const LIVES = 3
 const GREEN_GOAL = 10
-const MAX_CIRCLES = 8
+const MAX_CIRCLES = 9
 const MARGIN = 5
 const MIN_SIZE = 44
 const MAX_SIZE = 48
-const SPAWN_DELAY_MIN = 100
-const SPAWN_DELAY_MAX = 1000
-const LEVEL_INTERVAL_MS = 3000
-const BASE_GROWTH_MS = 1200
-const LEVEL_GROWTH_DELTA_MS = 300
+const SPAWN_DELAY_MIN = 60
+const SPAWN_DELAY_MAX = 600
+const LEVEL_INTERVAL_MS = 5000
+const BASE_GROWTH_MS = 150
+const LEVEL_GROWTH_DELTA_MS = 250
 
 const GAME_AREA_WIDTH = 600
 const GAME_AREA_HEIGHT = 400
@@ -46,7 +46,7 @@ const randomPosition = () => {
   return { x, y, maxSize: Math.round(size) }
 }
 
-export default function ReactionGame({ onComplete }) {
+export default function ReactionGame({ onComplete, isLastGame }) {
   const [lives, setLives] = useState(LIVES)
   const [greenCount, setGreenCount] = useState(0)
   const [circles, setCircles] = useState([])
@@ -276,7 +276,7 @@ export default function ReactionGame({ onComplete }) {
             <GameCompleteScreen
               title="Победа!"
               subtitle={`Вы собрали все 10 зелёных кружков на уровне ${winLevel}`}
-              buttonText="Далее"
+              buttonText={isLastGame ? 'Перейти к итогам' : 'К следующему испытанию'}
               onNext={finish}
             />
           </div>
@@ -287,7 +287,7 @@ export default function ReactionGame({ onComplete }) {
             <GameCompleteScreen
               title="Поражение"
               subtitle="Жизни закончились"
-              buttonText="Пропустить"
+              buttonText={isLastGame ? 'Перейти к итогам' : 'К следующему испытанию'}
               onNext={finish}
             />
           </div>

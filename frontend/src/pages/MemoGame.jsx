@@ -25,7 +25,7 @@ const formatTime = (seconds) => {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-export default function MemoGame({ onComplete }) {
+export default function MemoGame({ onComplete, isLastGame }) {
   const [cards, setCards] = useState(() => buildDeck())
   const [flipped, setFlipped] = useState([])
   const [moves, setMoves] = useState(0)
@@ -123,7 +123,7 @@ export default function MemoGame({ onComplete }) {
                 </div>
               </div>
             }
-            buttonText="Следующая игра →"
+            buttonText={isLastGame ? 'Перейти к итогам' : 'К следующему испытанию'}
             onNext={goToNext}
             titleTag="h1"
             buttonClassName="primary-button"

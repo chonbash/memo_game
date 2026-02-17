@@ -58,6 +58,7 @@ export default function Game() {
   }, [availableGames, playedGames, gameOrder, navigate])
 
   const currentGame = availableGames[0]
+  const isLastGame = availableGames.length === 1
 
   if (loading || availableGames.length === 0) {
     return (
@@ -69,8 +70,8 @@ export default function Game() {
     )
   }
 
-  if (currentGame === 'memo') return <MemoGame onComplete={handleComplete} />
+  if (currentGame === 'memo') return <MemoGame onComplete={handleComplete} isLastGame={isLastGame} />
   if (currentGame === 'truth-or-myth')
-    return <TruthOrMyth onComplete={handleComplete} />
-  return <ReactionGame onComplete={handleComplete} />
+    return <TruthOrMyth onComplete={handleComplete} isLastGame={isLastGame} />
+  return <ReactionGame onComplete={handleComplete} isLastGame={isLastGame} />
 }

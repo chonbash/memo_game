@@ -4,6 +4,7 @@ import Fireworks from '../components/Fireworks.jsx'
 import {
   fetchStats,
   fetchTeamStats,
+  fetchTeamTotalStats,
   getLastGame,
   getRegistrationId,
   getSelectedTeam,
@@ -99,7 +100,53 @@ function RatingBlock({ config, playerEntries, teamEntries, loading, error }) {
   )
 }
 
+function TeamTotalBlock({ entries, loading, error }) {
+  const hasEntries = entries && entries.length > 0
+
+  return (
+    <div className="stats-board stats-board-team-total">
+      <div>
+        <h2>Командный зачёт</h2>
+        <p className="subtitle">1) Больше игр — выше место. 2) При равенстве — меньше сумма очков лучше.</p>
+      </div>
+      {loading && <p>Загружаем...</p>}
+      {!loading && error && <div className="error">{error}</div>}
+      {!loading && !error && !hasEntries && (
+        <p className="subtitle">Пока нет результатов.</p>
+      )}
+      {!loading && !error && hasEntries && (
+        <div className="stats-list">
+          {entries.map((entry, index) => (
+            <div key={`total-${entry.team}`} className="stats-row">
+              <div className="stats-main">
+                <div className="stats-name">
+                  {index === 0 && <span className="crown">👑</span>}
+                  <span>{entry.team}</span>
+                </div>
+                <div className="stats-team team-total-detail">
+                  {[
+                    entry.memo_best != null && `Мемо: ${entry.memo_best}`,
+                    entry.truth_or_myth_best != null && `Правда/миф: ${entry.truth_or_myth_best}`,
+                    entry.reaction_best != null && `Реакция: ${entry.reaction_best}`,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </div>
+              </div>
+              <div className="stats-metrics">
+                <span className="team-total-games">Игр: {entry.games_played}</span>
+                <span className="team-total-score">Сумма: {entry.total_score}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Victory() {
+  const [teamTotalEntries, setTeamTotalEntries] = useState([])
   const [ratingData, setRatingData] = useState(() =>
     RATING_CONFIG.map((c) => ({ gameType: c.gameType, players: [], teams: [] }))
   )
@@ -125,8 +172,9 @@ export default function Victory() {
           markGameSubmitted(token)
         }
 
-        const results = await Promise.all(
-          RATING_CONFIG.map(async (config) => {
+        const [teamTotalResponse, ...results] = await Promise.all([
+          fetchTeamTotalStats(),
+          ...RATING_CONFIG.map(async (config) => {
             const [playersResponse, teamsResponse] = await Promise.all([
               fetchStats(config.gameType),
               fetchTeamStats(config.gameType),
@@ -136,9 +184,11 @@ export default function Victory() {
               players: playersResponse.entries || [],
               teams: teamsResponse.entries || [],
             }
-          })
-        )
+          }),
+        ])
+
         if (isMounted) {
+          setTeamTotalEntries(teamTotalResponse.entries || [])
           setRatingData(results)
         }
       } catch (err) {
@@ -167,6 +217,14 @@ export default function Victory() {
         <p className="subtitle">Вы прошли игру. Наслаждайтесь видео.</p>
         <div className="video-wrapper">
           <video src={getVideoUrl(getSelectedTeam())} controls autoPlay />
+        </div>
+        <TeamTotalBlock
+          entries={teamTotalEntries}
+          loading={loading}
+          error={error}
+        />
+        <div className="stats-section-heading">
+          <h2>Результаты по играм</h2>
         </div>
         {RATING_CONFIG.map((config, i) => (
           <RatingBlock

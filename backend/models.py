@@ -54,6 +54,19 @@ class TeamStatsResponse(BaseModel):
     entries: list[TeamStatsEntry]
 
 
+class TeamTotalEntry(BaseModel):
+    team: str
+    games_played: int
+    total_score: int
+    memo_best: int | None = None
+    truth_or_myth_best: int | None = None
+    reaction_best: int | None = None
+
+
+class TeamTotalStatsResponse(BaseModel):
+    entries: list[TeamTotalEntry]
+
+
 class TeamEntry(BaseModel):
     team: str = Field(min_length=1, max_length=100)
     media_path: str = Field(min_length=1, max_length=300)

@@ -395,6 +395,35 @@ def get_team_stats(game_type: str | None = None) -> list[sqlite3.Row]:
         conn.close()
 
 
+def get_team_total_standings() -> list[sqlite3.Row]:
+    """Командный зачёт: 1) больше игр — лучше, 2) при равенстве — меньше сумма очков лучше."""
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            """
+            WITH by_team_game AS (
+                SELECT r.team, gr.game_type, MIN(gr.moves) AS best_moves
+                FROM registrations r
+                JOIN game_results gr ON gr.registration_id = r.id
+                GROUP BY r.team, gr.game_type
+            )
+            SELECT
+                team,
+                COUNT(*) AS games_played,
+                SUM(best_moves) AS total_score,
+                MAX(CASE WHEN game_type = 'memo' THEN best_moves END) AS memo_best,
+                MAX(CASE WHEN game_type = 'truth_or_myth' THEN best_moves END) AS truth_or_myth_best,
+                MAX(CASE WHEN game_type = 'reaction' THEN best_moves END) AS reaction_best
+            FROM by_team_game
+            GROUP BY team
+            ORDER BY games_played DESC, total_score ASC, team COLLATE NOCASE ASC;
+            """
+        )
+        return cursor.fetchall()
+    finally:
+        conn.close()
+
+
 def reset_all_game_results() -> int:
     """Delete all rows from game_results. Returns number of deleted rows."""
     conn = get_connection()
