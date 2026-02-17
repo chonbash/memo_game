@@ -144,17 +144,39 @@ export default function ReactionGame({ onComplete, isLastGame }) {
     }
   }, [greenCount, gameOver, level])
 
-  useEffect(() => {
-    if (lives <= 0 && !gameOver) {
-      setGameOver('lose')
+  const reset = useCallback(() => {
+    if (nextSpawnRef.current) {
+      clearTimeout(nextSpawnRef.current)
+      nextSpawnRef.current = null
     }
-  }, [lives, gameOver])
+    if (levelIntervalRef.current) {
+      clearInterval(levelIntervalRef.current)
+      levelIntervalRef.current = null
+    }
+    setLives(LIVES)
+    setGreenCount(0)
+    setCircles([])
+    setLevel(0)
+    setGameOver(null)
+    setWinLevel(null)
+    circlesGrowthRef.current.clear()
+    levelIntervalRef.current = setInterval(() => {
+      setLevel((prev) => prev + 1)
+    }, LEVEL_INTERVAL_MS)
+    scheduleSpawn()
+  }, [scheduleSpawn])
 
   useEffect(() => {
-    if (!gameOver || resultSubmittedRef.current) return
+    if (lives <= 0 && !gameOver) {
+      reset()
+    }
+  }, [lives, gameOver, reset])
+
+  useEffect(() => {
+    if (gameOver !== 'win' || resultSubmittedRef.current) return
     const regId = getRegistrationId()
     if (!regId) return
-    const score = gameOver === 'win' ? winLevel : level
+    const score = winLevel
     resultSubmittedRef.current = true
     submitGameResult({
       registration_id: regId,
@@ -163,7 +185,7 @@ export default function ReactionGame({ onComplete, isLastGame }) {
     }).catch(() => {
       resultSubmittedRef.current = false
     })
-  }, [gameOver, winLevel, level])
+  }, [gameOver, winLevel])
 
   const handleCircleClick = useCallback(
     (id) => {
@@ -276,17 +298,6 @@ export default function ReactionGame({ onComplete, isLastGame }) {
             <GameCompleteScreen
               title="Победа!"
               subtitle={`Вы собрали все 10 зелёных кружков на уровне ${winLevel}`}
-              buttonText={isLastGame ? 'Перейти к итогам' : 'К следующему испытанию'}
-              onNext={finish}
-            />
-          </div>
-        )}
-
-        {gameOver === 'lose' && (
-          <div className="truth-result">
-            <GameCompleteScreen
-              title="Поражение"
-              subtitle="Жизни закончились"
               buttonText={isLastGame ? 'Перейти к итогам' : 'К следующему испытанию'}
               onNext={finish}
             />
