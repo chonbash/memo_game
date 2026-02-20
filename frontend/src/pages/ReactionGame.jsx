@@ -5,14 +5,14 @@ import GameCompleteScreen from '../components/GameCompleteScreen.jsx'
 
 const LIVES = 3
 const GREEN_GOAL = 10
-const MAX_CIRCLES = 9
+const MAX_CIRCLES = 7
 const MARGIN = 5
 const MIN_SIZE = 48
 const MAX_SIZE = 56
 const SPAWN_DELAY_MIN = 60
 const SPAWN_DELAY_MAX = 600
 const LEVEL_INTERVAL_MS = 5500
-const BASE_GROWTH_MS = 150
+const BASE_GROWTH_MS = 250
 const LEVEL_GROWTH_DELTA_MS = 200
 
 const GAME_AREA_WIDTH = 600
