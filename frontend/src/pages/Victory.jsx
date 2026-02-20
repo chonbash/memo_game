@@ -236,7 +236,11 @@ export default function Victory() {
             error={error}
           />
         ))}
-        <Link className="link-button" to="/">
+        <div className="video-wrapper video-wrapper-general">
+          <h2 className="video-congrats-heading">Общее видео поздравление</h2>
+          <video src={getVideoUrl()} controls autoPlay />
+        </div>
+        <Link className="link-button subtle" to="/">
           Вернуться к регистрации
         </Link>
       </div>

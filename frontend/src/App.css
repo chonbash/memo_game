@@ -245,6 +245,16 @@ button:disabled {
   background: #000;
 }
 
+.video-wrapper-general {
+  margin-top: 1.5rem;
+}
+
+.video-congrats-heading {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
 .stats-board {
   display: flex;
   flex-direction: column;
