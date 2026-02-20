@@ -7,13 +7,13 @@ const LIVES = 3
 const GREEN_GOAL = 10
 const MAX_CIRCLES = 9
 const MARGIN = 5
-const MIN_SIZE = 44
-const MAX_SIZE = 48
+const MIN_SIZE = 48
+const MAX_SIZE = 56
 const SPAWN_DELAY_MIN = 60
 const SPAWN_DELAY_MAX = 600
-const LEVEL_INTERVAL_MS = 5000
+const LEVEL_INTERVAL_MS = 5500
 const BASE_GROWTH_MS = 150
-const LEVEL_GROWTH_DELTA_MS = 250
+const LEVEL_GROWTH_DELTA_MS = 200
 
 const GAME_AREA_WIDTH = 600
 const GAME_AREA_HEIGHT = 400
@@ -205,6 +205,14 @@ export default function ReactionGame({ onComplete, isLastGame }) {
     [gameOver, circles],
   )
 
+  const handleCirclePointerDown = useCallback(
+    (e, id) => {
+      e.preventDefault()
+      handleCircleClick(id)
+    },
+    [handleCircleClick],
+  )
+
   const finish = useCallback(() => {
     const regId = getRegistrationId()
     if (regId) {
@@ -285,7 +293,7 @@ export default function ReactionGame({ onComplete, isLastGame }) {
                   background: COLORS[c.color],
                   borderRadius: '50%',
                 }}
-                onClick={() => handleCircleClick(c.id)}
+                onPointerDown={(e) => handleCirclePointerDown(e, c.id)}
                 aria-label={`Круг ${c.color}`}
               />
             ))}

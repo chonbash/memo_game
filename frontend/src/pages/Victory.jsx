@@ -241,17 +241,6 @@ export default function Victory() {
           <div className="video-wrapper victory-team-video">
             <video src={getVideoUrl(getSelectedTeam())} controls autoPlay />
           </div>
-          {generalCongratsUrl ? (
-            <button
-              type="button"
-              className="congrats-play-btn"
-              onClick={openCongratsFullscreen}
-            >
-              Смотреть поздравление
-            </button>
-          ) : (
-            <p className="victory-loading">Загрузка…</p>
-          )}
         </header>
 
         <section className="victory-stats" aria-label="Результаты">
@@ -272,6 +261,20 @@ export default function Victory() {
             />
           ))}
         </section>
+
+        <div className="victory-cta-wrap">
+          {generalCongratsUrl ? (
+            <button
+              type="button"
+              className="congrats-play-btn"
+              onClick={openCongratsFullscreen}
+            >
+              Смотреть поздравление
+            </button>
+          ) : (
+            <p className="victory-loading">Загрузка…</p>
+          )}
+        </div>
         {showCongratsFullscreen && generalCongratsUrl && (
           <div
             ref={congratsOverlayRef}
