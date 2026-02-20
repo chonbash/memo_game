@@ -102,6 +102,16 @@ def health() -> dict:
     return {"status": "ok"}
 
 
+@app.get("/api/general-congrats")
+def get_general_congrats() -> dict:
+    """Возвращает path к файлу congrats с любым расширением из корня media."""
+    video_file = _find_team_video(MEDIA_DIR)
+    if not video_file:
+        raise HTTPException(404, "Файл поздравления не найден")
+    filename = video_file.name
+    return {"path": filename}
+
+
 @app.post("/api/register", response_model=RegistrationOut)
 def register(payload: RegistrationIn) -> RegistrationOut:
     reg_id = db.create_registration(payload.fio, payload.team, payload.email)

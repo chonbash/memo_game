@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Fireworks from '../components/Fireworks.jsx'
 import {
+  fetchGeneralCongratsUrl,
   fetchStats,
   fetchTeamStats,
   fetchTeamTotalStats,
@@ -152,6 +152,28 @@ export default function Victory() {
   )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [generalCongratsUrl, setGeneralCongratsUrl] = useState(null)
+  const [showCongratsFullscreen, setShowCongratsFullscreen] = useState(false)
+  const congratsOverlayRef = useRef(null)
+
+  useEffect(() => {
+    fetchGeneralCongratsUrl().then(setGeneralCongratsUrl)
+  }, [])
+
+  useEffect(() => {
+    if (!showCongratsFullscreen || !congratsOverlayRef.current) return
+    const el = congratsOverlayRef.current
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement) setShowCongratsFullscreen(false)
+    }
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+    el.requestFullscreen?.().catch(() => {})
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange)
+  }, [showCongratsFullscreen])
+
+  const openCongratsFullscreen = useCallback(() => {
+    setShowCongratsFullscreen(true)
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -210,39 +232,60 @@ export default function Victory() {
   }, [])
 
   return (
-    <div className="page">
+    <div className="page page-victory">
       <Fireworks />
       <div className="card-panel wide victory-content">
-        <h1>Поздравляем!</h1>
-        <p className="subtitle">Вы прошли игру. Наслаждайтесь видео.</p>
-        <div className="video-wrapper">
-          <video src={getVideoUrl(getSelectedTeam())} controls autoPlay />
-        </div>
-        <TeamTotalBlock
-          entries={teamTotalEntries}
-          loading={loading}
-          error={error}
-        />
-        <div className="stats-section-heading">
-          <h2>Результаты по играм</h2>
-        </div>
-        {RATING_CONFIG.map((config, i) => (
-          <RatingBlock
-            key={config.gameType}
-            config={config}
-            playerEntries={ratingData[i]?.players ?? []}
-            teamEntries={ratingData[i]?.teams ?? []}
+        <header className="victory-hero">
+          <h1 className="victory-title">Поздравляем!</h1>
+          <p className="victory-subtitle">Вы прошли игру. Наслаждайтесь.</p>
+          <div className="video-wrapper victory-team-video">
+            <video src={getVideoUrl(getSelectedTeam())} controls autoPlay />
+          </div>
+          {generalCongratsUrl ? (
+            <button
+              type="button"
+              className="congrats-play-btn"
+              onClick={openCongratsFullscreen}
+            >
+              Смотреть поздравление
+            </button>
+          ) : (
+            <p className="victory-loading">Загрузка…</p>
+          )}
+        </header>
+
+        <section className="victory-stats" aria-label="Результаты">
+          <TeamTotalBlock
+            entries={teamTotalEntries}
             loading={loading}
             error={error}
           />
-        ))}
-        <div className="video-wrapper video-wrapper-general">
-          <h2 className="video-congrats-heading">Видео поздравление</h2>
-          <video src={getVideoUrl()} controls autoPlay />
-        </div>
-        <Link className="link-button subtle" to="/">
-          Вернуться к регистрации
-        </Link>
+          <h2 className="victory-stats-heading">Результаты по играм</h2>
+          {RATING_CONFIG.map((config, i) => (
+            <RatingBlock
+              key={config.gameType}
+              config={config}
+              playerEntries={ratingData[i]?.players ?? []}
+              teamEntries={ratingData[i]?.teams ?? []}
+              loading={loading}
+              error={error}
+            />
+          ))}
+        </section>
+        {showCongratsFullscreen && generalCongratsUrl && (
+          <div
+            ref={congratsOverlayRef}
+            className="congrats-fullscreen-overlay"
+            aria-hidden="true"
+          >
+            <video
+              src={generalCongratsUrl}
+              controls
+              autoPlay
+              onEnded={() => document.exitFullscreen?.()}
+            />
+          </div>
+        )}
       </div>
     </div>
   )

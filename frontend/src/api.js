@@ -6,6 +6,7 @@ const REGISTRATION_ID_KEY = 'memoGameRegistrationId'
 const LAST_GAME_MOVES_KEY = 'memoGameLastMoves'
 const LAST_GAME_TOKEN_KEY = 'memoGameLastGameToken'
 const SUBMITTED_GAME_TOKEN_KEY = 'memoGameSubmittedGameToken'
+/** Для общего поздравления используется файл congrats с любым расширением (уточняется через API). */
 const DEFAULT_VIDEO_PATH = 'congrats.mp4'
 
 export async function registerUser(payload) {
@@ -328,4 +329,12 @@ export function getVideoUrl(videoPath = '') {
     .map((segment) => encodeURIComponent(segment))
     .join('/')
   return `${API_BASE}/media/${encodedPath}`
+}
+
+/** URL общего видео поздравления (файл congrats с любым расширением). */
+export async function fetchGeneralCongratsUrl() {
+  const response = await fetch(`${API_BASE}/api/general-congrats`)
+  if (!response.ok) return getVideoUrl(DEFAULT_VIDEO_PATH)
+  const { path } = await response.json()
+  return getVideoUrl(path || DEFAULT_VIDEO_PATH)
 }

@@ -24,6 +24,64 @@
 .victory-content {
   position: relative;
   z-index: 1;
+  gap: 0;
+}
+
+/* ——— Victory: герой ——— */
+.victory-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.victory-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.victory-subtitle {
+  margin: 0;
+  font-size: 1rem;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.victory-team-video {
+  margin-top: 4px;
+}
+
+.victory-team-video video {
+  width: 100%;
+  border-radius: 16px;
+  background: #000;
+}
+
+.victory-loading {
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+/* ——— Victory: блок результатов ——— */
+.victory-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 28px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.victory-stats-heading {
+  margin: 8px 0 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #475569;
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
@@ -245,14 +303,84 @@ button:disabled {
   background: #000;
 }
 
-.video-wrapper-general {
-  margin-top: 1.5rem;
+/* Главное действие на Victory */
+.congrats-play-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 16px;
+  width: 100%;
+  max-width: 320px;
+  align-self: center;
+  padding: 16px 28px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  background: #0051ff;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 81, 255, 0.28);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
-.video-congrats-heading {
-  font-size: 1.25rem;
-  margin-bottom: 0.75rem;
-  font-weight: 600;
+.congrats-play-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 81, 255, 0.3);
+  background: #1a5fff;
+}
+
+.congrats-play-btn:active {
+  transform: translateY(0);
+}
+
+.congrats-play-btn::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 6px 0 6px 11px;
+  border-color: transparent transparent transparent currentColor;
+}
+
+/* Полноэкранное поздравление */
+.congrats-fullscreen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: congratsOverlayIn 0.2s ease-out;
+}
+
+@keyframes congratsOverlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.congrats-fullscreen-overlay video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.congrats-fullscreen-overlay::after {
+  content: 'Esc — выход';
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.06em;
+  pointer-events: none;
 }
 
 .stats-board {

@@ -26,4 +26,5 @@ dist-ssr
 
 # Database
 backend/app.db
+backend/media
 .venv
