@@ -9,6 +9,7 @@ const MAX_CIRCLES = 7
 const MARGIN = 5
 const MIN_SIZE = 48
 const MAX_SIZE = 56
+const MIN_TOUCH_TARGET = 48
 const SPAWN_DELAY_MIN = 60
 const SPAWN_DELAY_MAX = 600
 const LEVEL_INTERVAL_MS = 5500
@@ -280,23 +281,40 @@ export default function ReactionGame({ onComplete, isLastGame }) {
                 transform: `scale(${scale})`,
               }}
             >
-            {sortedCircles.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                className="reaction-circle"
-                style={{
-                  left: c.x - c.size / 2,
-                  top: c.y - c.size / 2,
-                  width: c.size,
-                  height: c.size,
-                  background: COLORS[c.color],
-                  borderRadius: '50%',
-                }}
-                onPointerDown={(e) => handleCirclePointerDown(e, c.id)}
-                aria-label={`Круг ${c.color}`}
-              />
-            ))}
+            {sortedCircles.map((c) => {
+              const touchSize = Math.max(MIN_TOUCH_TARGET, c.size)
+              const touchHalf = touchSize / 2
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  className="reaction-circle"
+                  style={{
+                    left: c.x - touchHalf,
+                    top: c.y - touchHalf,
+                    width: touchSize,
+                    height: touchSize,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'transparent',
+                    padding: 0,
+                  }}
+                  onPointerDown={(e) => handleCirclePointerDown(e, c.id)}
+                  aria-label={`Круг ${c.color}`}
+                >
+                  <span
+                    style={{
+                      width: c.size,
+                      height: c.size,
+                      background: COLORS[c.color],
+                      borderRadius: '50%',
+                      flexShrink: 0,
+                    }}
+                  />
+                </button>
+              )
+            })}
             </div>
           </div>
         )}
