@@ -96,8 +96,7 @@ export default function Register() {
       <div className="card-panel">
         <h1>Игровая регистрация</h1>
         <p className="subtitle">
-          Заполните регистрацию и пройдите две игры в случайном порядке: Memo и
-          «Правда или миф».
+          Заполните регистрацию и пройдите игры.
         </p>
         <form className="form" onSubmit={onSubmit}>
           <label className="field">
